@@ -8,7 +8,7 @@
   <meta name="description" content="<p>This is a minimal example of using the bookdown package to write a book.
 The HTML output format for this example is bookdown::gitbook,
 set in the _output.yml file.</p>" />
-  <meta name="generator" content="bookdown 0.26 and GitBook 2.6.7" />
+  <meta name="generator" content="bookdown 0.31 and GitBook 2.6.7" />
 
   <meta property="og:title" content="Chapter 4 Multidimensional Smoothing | Practical Smoothing, The Joys of P-splines" />
   <meta property="og:type" content="book" />
@@ -29,7 +29,7 @@ set in the _output.yml file.</p>" />
 <meta name="author" content="孔冬冬" />
 
 
-<meta name="date" content="2022-04-16" />
+<meta name="date" content="2022-12-23" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -222,539 +222,549 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </blockquote>
 <div id="figure-4.1" class="section level2 hasAnchor">
 <h2><span class="header-section-number">4.1</span> Figure 4.1<a href="multidimensional-smoothing.html#figure-4.1" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="multidimensional-smoothing.html#cb32-1"></a><span class="co"># GAM smoothing (Ethanol data)</span></span>
-<span id="cb32-2"><a href="multidimensional-smoothing.html#cb32-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
-<span id="cb32-3"><a href="multidimensional-smoothing.html#cb32-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
-<span id="cb32-4"><a href="multidimensional-smoothing.html#cb32-4"></a><span class="kw">library</span>(ggplot2)</span>
-<span id="cb32-5"><a href="multidimensional-smoothing.html#cb32-5"></a><span class="kw">library</span>(SemiPar)</span>
-<span id="cb32-6"><a href="multidimensional-smoothing.html#cb32-6"></a><span class="kw">library</span>(gridExtra)</span>
-<span id="cb32-7"><a href="multidimensional-smoothing.html#cb32-7"></a><span class="kw">library</span>(JOPS)</span></code></pre></div>
-<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="multidimensional-smoothing.html#cb33-1"></a><span class="co"># Get the data</span></span>
-<span id="cb33-2"><a href="multidimensional-smoothing.html#cb33-2"></a><span class="kw">data</span>(ethanol)</span>
-<span id="cb33-3"><a href="multidimensional-smoothing.html#cb33-3"></a></span>
-<span id="cb33-4"><a href="multidimensional-smoothing.html#cb33-4"></a><span class="co"># Basis matrix for compression ratio (C)</span></span>
-<span id="cb33-5"><a href="multidimensional-smoothing.html#cb33-5"></a>clo =<span class="st"> </span><span class="fl">7.5</span></span>
-<span id="cb33-6"><a href="multidimensional-smoothing.html#cb33-6"></a>chi =<span class="st"> </span><span class="dv">18</span></span>
-<span id="cb33-7"><a href="multidimensional-smoothing.html#cb33-7"></a>ngrid =<span class="st"> </span><span class="dv">50</span></span>
-<span id="cb33-8"><a href="multidimensional-smoothing.html#cb33-8"></a>B1 =<span class="st"> </span><span class="kw">bbase</span>(ethanol<span class="op">$</span>C, clo, chi)</span>
-<span id="cb33-9"><a href="multidimensional-smoothing.html#cb33-9"></a></span>
-<span id="cb33-10"><a href="multidimensional-smoothing.html#cb33-10"></a><span class="co"># Basis matrix for equivalenc ratio (E)</span></span>
-<span id="cb33-11"><a href="multidimensional-smoothing.html#cb33-11"></a>elo =<span class="st"> </span><span class="fl">0.5</span></span>
-<span id="cb33-12"><a href="multidimensional-smoothing.html#cb33-12"></a>ehi =<span class="st"> </span><span class="fl">1.25</span></span>
-<span id="cb33-13"><a href="multidimensional-smoothing.html#cb33-13"></a>B2 =<span class="st"> </span><span class="kw">bbase</span>(ethanol<span class="op">$</span>E, elo, ehi)</span>
-<span id="cb33-14"><a href="multidimensional-smoothing.html#cb33-14"></a></span>
-<span id="cb33-15"><a href="multidimensional-smoothing.html#cb33-15"></a><span class="co"># Penalty matrix</span></span>
-<span id="cb33-16"><a href="multidimensional-smoothing.html#cb33-16"></a>n =<span class="st"> </span><span class="kw">ncol</span>(B1)</span>
-<span id="cb33-17"><a href="multidimensional-smoothing.html#cb33-17"></a>D =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(n), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
-<span id="cb33-18"><a href="multidimensional-smoothing.html#cb33-18"></a>r1 =<span class="st"> </span><span class="dv">1</span><span class="op">:</span>n</span>
-<span id="cb33-19"><a href="multidimensional-smoothing.html#cb33-19"></a>r2 =<span class="st"> </span>r1 <span class="op">+</span><span class="st"> </span>n</span>
-<span id="cb33-20"><a href="multidimensional-smoothing.html#cb33-20"></a>lambdas =<span class="st"> </span><span class="kw">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>)</span>
-<span id="cb33-21"><a href="multidimensional-smoothing.html#cb33-21"></a>P =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(lambdas), <span class="kw">t</span>(D) <span class="op">%*%</span><span class="st"> </span>D)</span>
-<span id="cb33-22"><a href="multidimensional-smoothing.html#cb33-22"></a>P =<span class="st"> </span>P <span class="op">+</span><span class="st"> </span><span class="kw">diag</span>(<span class="dv">2</span> <span class="op">*</span><span class="st"> </span>n) <span class="op">*</span><span class="st"> </span><span class="fl">1e-06</span></span>
-<span id="cb33-23"><a href="multidimensional-smoothing.html#cb33-23"></a></span>
-<span id="cb33-24"><a href="multidimensional-smoothing.html#cb33-24"></a><span class="co"># Fit the model</span></span>
-<span id="cb33-25"><a href="multidimensional-smoothing.html#cb33-25"></a>B =<span class="st"> </span><span class="kw">cbind</span>(B1, B2)</span>
-<span id="cb33-26"><a href="multidimensional-smoothing.html#cb33-26"></a>y =<span class="st"> </span>ethanol<span class="op">$</span>NOx</span>
-<span id="cb33-27"><a href="multidimensional-smoothing.html#cb33-27"></a>a =<span class="st"> </span><span class="kw">solve</span>(<span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B <span class="op">+</span><span class="st"> </span>P, <span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>y)</span>
-<span id="cb33-28"><a href="multidimensional-smoothing.html#cb33-28"></a>mu =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
-<span id="cb33-29"><a href="multidimensional-smoothing.html#cb33-29"></a><span class="kw">cat</span>(<span class="st">&#39;SD of residuals:&#39;</span>, <span class="kw">sd</span>(y <span class="op">-</span><span class="st"> </span>mu), <span class="st">&#39;</span><span class="ch">\n</span><span class="st">&#39;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="multidimensional-smoothing.html#cb33-1"></a><span class="co"># GAM smoothing (Ethanol data)</span></span>
+<span id="cb33-2"><a href="multidimensional-smoothing.html#cb33-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
+<span id="cb33-3"><a href="multidimensional-smoothing.html#cb33-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
+<span id="cb33-4"><a href="multidimensional-smoothing.html#cb33-4"></a><span class="kw">library</span>(ggplot2)</span>
+<span id="cb33-5"><a href="multidimensional-smoothing.html#cb33-5"></a><span class="kw">library</span>(SemiPar)</span>
+<span id="cb33-6"><a href="multidimensional-smoothing.html#cb33-6"></a><span class="kw">library</span>(gridExtra)</span>
+<span id="cb33-7"><a href="multidimensional-smoothing.html#cb33-7"></a><span class="kw">library</span>(JOPS)</span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="multidimensional-smoothing.html#cb34-1"></a><span class="co"># Get the data</span></span>
+<span id="cb34-2"><a href="multidimensional-smoothing.html#cb34-2"></a><span class="kw">data</span>(ethanol)</span>
+<span id="cb34-3"><a href="multidimensional-smoothing.html#cb34-3"></a></span>
+<span id="cb34-4"><a href="multidimensional-smoothing.html#cb34-4"></a><span class="co"># Basis matrix for compression ratio (C)</span></span>
+<span id="cb34-5"><a href="multidimensional-smoothing.html#cb34-5"></a>clo =<span class="st"> </span><span class="fl">7.5</span></span>
+<span id="cb34-6"><a href="multidimensional-smoothing.html#cb34-6"></a>chi =<span class="st"> </span><span class="dv">18</span></span>
+<span id="cb34-7"><a href="multidimensional-smoothing.html#cb34-7"></a>ngrid =<span class="st"> </span><span class="dv">50</span></span>
+<span id="cb34-8"><a href="multidimensional-smoothing.html#cb34-8"></a>B1 =<span class="st"> </span><span class="kw">bbase</span>(ethanol<span class="op">$</span>C, clo, chi)</span>
+<span id="cb34-9"><a href="multidimensional-smoothing.html#cb34-9"></a></span>
+<span id="cb34-10"><a href="multidimensional-smoothing.html#cb34-10"></a><span class="co"># Basis matrix for equivalenc ratio (E)</span></span>
+<span id="cb34-11"><a href="multidimensional-smoothing.html#cb34-11"></a>elo =<span class="st"> </span><span class="fl">0.5</span></span>
+<span id="cb34-12"><a href="multidimensional-smoothing.html#cb34-12"></a>ehi =<span class="st"> </span><span class="fl">1.25</span></span>
+<span id="cb34-13"><a href="multidimensional-smoothing.html#cb34-13"></a>B2 =<span class="st"> </span><span class="kw">bbase</span>(ethanol<span class="op">$</span>E, elo, ehi)</span>
+<span id="cb34-14"><a href="multidimensional-smoothing.html#cb34-14"></a></span>
+<span id="cb34-15"><a href="multidimensional-smoothing.html#cb34-15"></a><span class="co"># Penalty matrix</span></span>
+<span id="cb34-16"><a href="multidimensional-smoothing.html#cb34-16"></a>n =<span class="st"> </span><span class="kw">ncol</span>(B1)</span>
+<span id="cb34-17"><a href="multidimensional-smoothing.html#cb34-17"></a>D =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(n), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
+<span id="cb34-18"><a href="multidimensional-smoothing.html#cb34-18"></a>r1 =<span class="st"> </span><span class="dv">1</span><span class="op">:</span>n</span>
+<span id="cb34-19"><a href="multidimensional-smoothing.html#cb34-19"></a>r2 =<span class="st"> </span>r1 <span class="op">+</span><span class="st"> </span>n</span>
+<span id="cb34-20"><a href="multidimensional-smoothing.html#cb34-20"></a>lambdas =<span class="st"> </span><span class="kw">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>)</span>
+<span id="cb34-21"><a href="multidimensional-smoothing.html#cb34-21"></a>P =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(lambdas), <span class="kw">t</span>(D) <span class="op">%*%</span><span class="st"> </span>D)</span>
+<span id="cb34-22"><a href="multidimensional-smoothing.html#cb34-22"></a>P =<span class="st"> </span>P <span class="op">+</span><span class="st"> </span><span class="kw">diag</span>(<span class="dv">2</span> <span class="op">*</span><span class="st"> </span>n) <span class="op">*</span><span class="st"> </span><span class="fl">1e-06</span></span>
+<span id="cb34-23"><a href="multidimensional-smoothing.html#cb34-23"></a></span>
+<span id="cb34-24"><a href="multidimensional-smoothing.html#cb34-24"></a><span class="co"># Fit the model</span></span>
+<span id="cb34-25"><a href="multidimensional-smoothing.html#cb34-25"></a>B =<span class="st"> </span><span class="kw">cbind</span>(B1, B2)</span>
+<span id="cb34-26"><a href="multidimensional-smoothing.html#cb34-26"></a>y =<span class="st"> </span>ethanol<span class="op">$</span>NOx</span>
+<span id="cb34-27"><a href="multidimensional-smoothing.html#cb34-27"></a>a =<span class="st"> </span><span class="kw">solve</span>(<span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B <span class="op">+</span><span class="st"> </span>P, <span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>y)</span>
+<span id="cb34-28"><a href="multidimensional-smoothing.html#cb34-28"></a>mu =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
+<span id="cb34-29"><a href="multidimensional-smoothing.html#cb34-29"></a><span class="kw">cat</span>(<span class="st">&#39;SD of residuals:&#39;</span>, <span class="kw">sd</span>(y <span class="op">-</span><span class="st"> </span>mu), <span class="st">&#39;</span><span class="ch">\n</span><span class="st">&#39;</span>)</span></code></pre></div>
 <pre><code>#&gt; SD of residuals: 0.2242995</code></pre>
-<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="multidimensional-smoothing.html#cb35-1"></a><span class="co"># Add fitted components to data frame (for ggplot)</span></span>
-<span id="cb35-2"><a href="multidimensional-smoothing.html#cb35-2"></a>Fmod =<span class="st"> </span>ethanol</span>
-<span id="cb35-3"><a href="multidimensional-smoothing.html#cb35-3"></a>Fmod<span class="op">$</span>f1 =<span class="st"> </span>B1 <span class="op">%*%</span><span class="st"> </span>a[r1]</span>
-<span id="cb35-4"><a href="multidimensional-smoothing.html#cb35-4"></a>Fmod<span class="op">$</span>f2 =<span class="st"> </span>B2 <span class="op">%*%</span><span class="st"> </span>a[r2]</span>
-<span id="cb35-5"><a href="multidimensional-smoothing.html#cb35-5"></a></span>
-<span id="cb35-6"><a href="multidimensional-smoothing.html#cb35-6"></a><span class="co"># Model fit on fine grid</span></span>
-<span id="cb35-7"><a href="multidimensional-smoothing.html#cb35-7"></a>cgrid =<span class="st"> </span><span class="kw">seq</span>(clo, chi, <span class="dt">length =</span> ngrid)</span>
-<span id="cb35-8"><a href="multidimensional-smoothing.html#cb35-8"></a>Bg1 =<span class="st"> </span><span class="kw">bbase</span>(cgrid, clo, chi)</span>
-<span id="cb35-9"><a href="multidimensional-smoothing.html#cb35-9"></a>egrid =<span class="st"> </span><span class="kw">seq</span>(elo, ehi, <span class="dt">length =</span> ngrid)</span>
-<span id="cb35-10"><a href="multidimensional-smoothing.html#cb35-10"></a>Bg2 =<span class="st"> </span><span class="kw">bbase</span>(egrid, elo, ehi)</span>
-<span id="cb35-11"><a href="multidimensional-smoothing.html#cb35-11"></a>zc =<span class="st"> </span>Bg1 <span class="op">%*%</span><span class="st"> </span>a[r1]</span>
-<span id="cb35-12"><a href="multidimensional-smoothing.html#cb35-12"></a>ze =<span class="st"> </span>Bg2 <span class="op">%*%</span><span class="st"> </span>a[r2]</span>
-<span id="cb35-13"><a href="multidimensional-smoothing.html#cb35-13"></a></span>
-<span id="cb35-14"><a href="multidimensional-smoothing.html#cb35-14"></a><span class="co"># Fill data frames for ggplot</span></span>
-<span id="cb35-15"><a href="multidimensional-smoothing.html#cb35-15"></a>Fc =<span class="st"> </span><span class="kw">data.frame</span>(cgrid, zc)</span>
-<span id="cb35-16"><a href="multidimensional-smoothing.html#cb35-16"></a>Fe =<span class="st"> </span><span class="kw">data.frame</span>(egrid, ze)</span>
-<span id="cb35-17"><a href="multidimensional-smoothing.html#cb35-17"></a></span>
-<span id="cb35-18"><a href="multidimensional-smoothing.html#cb35-18"></a><span class="co"># Create plots</span></span>
-<span id="cb35-19"><a href="multidimensional-smoothing.html#cb35-19"></a>plt1 =<span class="st"> </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> C, <span class="dt">y =</span> E), <span class="dt">data =</span> ethanol) <span class="op">+</span></span>
-<span id="cb35-20"><a href="multidimensional-smoothing.html#cb35-20"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">color =</span> <span class="st">&quot;darkgrey&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-21"><a href="multidimensional-smoothing.html#cb35-21"></a><span class="st">       </span><span class="kw">xlab</span>(<span class="st">&quot;Compression ratio (C)&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-22"><a href="multidimensional-smoothing.html#cb35-22"></a><span class="st">       </span><span class="kw">ylab</span>(<span class="st">&quot;Equivalence ratio (E)&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-23"><a href="multidimensional-smoothing.html#cb35-23"></a><span class="st">       </span><span class="kw">ggtitle</span>(<span class="st">&quot;Experiment design&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-24"><a href="multidimensional-smoothing.html#cb35-24"></a><span class="st">       </span><span class="kw">JOPS_theme</span>()</span>
-<span id="cb35-25"><a href="multidimensional-smoothing.html#cb35-25"></a></span>
-<span id="cb35-26"><a href="multidimensional-smoothing.html#cb35-26"></a>plt2 =<span class="st"> </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> E, <span class="dt">y =</span> NOx <span class="op">-</span><span class="st"> </span>f1), <span class="dt">data =</span> Fmod) <span class="op">+</span></span>
-<span id="cb35-27"><a href="multidimensional-smoothing.html#cb35-27"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">color =</span> <span class="st">&quot;darkgrey&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-28"><a href="multidimensional-smoothing.html#cb35-28"></a><span class="st">       </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">x =</span> egrid, <span class="dt">y =</span> ze), <span class="dt">data =</span> Fe, <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-29"><a href="multidimensional-smoothing.html#cb35-29"></a><span class="st">       </span><span class="kw">xlab</span>(<span class="st">&quot;Equivalence ratio&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-30"><a href="multidimensional-smoothing.html#cb35-30"></a><span class="st">       </span><span class="kw">ylab</span>(<span class="st">&quot;Partial residuals&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-31"><a href="multidimensional-smoothing.html#cb35-31"></a><span class="st">       </span><span class="kw">ggtitle</span>(<span class="st">&quot;Partial response&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-32"><a href="multidimensional-smoothing.html#cb35-32"></a><span class="st">       </span><span class="kw">JOPS_theme</span>()</span>
-<span id="cb35-33"><a href="multidimensional-smoothing.html#cb35-33"></a></span>
-<span id="cb35-34"><a href="multidimensional-smoothing.html#cb35-34"></a>plt3 =<span class="st"> </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> C, <span class="dt">y =</span> NOx <span class="op">-</span><span class="st"> </span>f2), <span class="dt">data =</span> Fmod) <span class="op">+</span></span>
-<span id="cb35-35"><a href="multidimensional-smoothing.html#cb35-35"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">color =</span> <span class="st">&quot;darkgrey&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-36"><a href="multidimensional-smoothing.html#cb35-36"></a><span class="st">       </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">x =</span> cgrid, <span class="dt">y =</span> zc), <span class="dt">data =</span> Fc, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span></span>
-<span id="cb35-37"><a href="multidimensional-smoothing.html#cb35-37"></a><span class="st">       </span><span class="kw">xlab</span>(<span class="st">&quot;Compression ratio (C)&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-38"><a href="multidimensional-smoothing.html#cb35-38"></a><span class="st">       </span><span class="kw">ylab</span>(<span class="st">&quot;Partial residuals&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-39"><a href="multidimensional-smoothing.html#cb35-39"></a><span class="st">       </span><span class="kw">ggtitle</span>(<span class="st">&quot;Partial response&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-40"><a href="multidimensional-smoothing.html#cb35-40"></a><span class="st">       </span><span class="kw">JOPS_theme</span>()</span>
-<span id="cb35-41"><a href="multidimensional-smoothing.html#cb35-41"></a></span>
-<span id="cb35-42"><a href="multidimensional-smoothing.html#cb35-42"></a>plt4 =<span class="st"> </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> f1 <span class="op">+</span><span class="st"> </span>f2, <span class="dt">y =</span> NOx), <span class="dt">data =</span> Fmod) <span class="op">+</span></span>
-<span id="cb35-43"><a href="multidimensional-smoothing.html#cb35-43"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">color =</span> <span class="st">&quot;darkgrey&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-44"><a href="multidimensional-smoothing.html#cb35-44"></a><span class="st">      </span><span class="kw">geom_abline</span>(<span class="dt">slope =</span> <span class="dv">1</span>, <span class="dt">intercept =</span> <span class="dv">0</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span></span>
-<span id="cb35-45"><a href="multidimensional-smoothing.html#cb35-45"></a><span class="st">      </span><span class="kw">xlab</span>(<span class="st">&quot;Fitted NOx&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-46"><a href="multidimensional-smoothing.html#cb35-46"></a><span class="st">      </span><span class="kw">ylab</span>(<span class="st">&quot;Observed &quot;</span>) <span class="op">+</span></span>
-<span id="cb35-47"><a href="multidimensional-smoothing.html#cb35-47"></a><span class="st">      </span><span class="kw">ggtitle</span>(<span class="st">&quot;Compare fit to data&quot;</span>) <span class="op">+</span></span>
-<span id="cb35-48"><a href="multidimensional-smoothing.html#cb35-48"></a><span class="st">      </span><span class="kw">JOPS_theme</span>()</span>
-<span id="cb35-49"><a href="multidimensional-smoothing.html#cb35-49"></a></span>
-<span id="cb35-50"><a href="multidimensional-smoothing.html#cb35-50"></a><span class="co"># Make and save pdf</span></span>
-<span id="cb35-51"><a href="multidimensional-smoothing.html#cb35-51"></a><span class="kw">grid.arrange</span>(plt1, plt2, plt3, plt4, <span class="dt">ncol =</span> <span class="dv">2</span>, <span class="dt">nrow =</span> <span class="dv">2</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="multidimensional-smoothing.html#cb36-1"></a><span class="co"># Add fitted components to data frame (for ggplot)</span></span>
+<span id="cb36-2"><a href="multidimensional-smoothing.html#cb36-2"></a>Fmod =<span class="st"> </span>ethanol</span>
+<span id="cb36-3"><a href="multidimensional-smoothing.html#cb36-3"></a>Fmod<span class="op">$</span>f1 =<span class="st"> </span>B1 <span class="op">%*%</span><span class="st"> </span>a[r1]</span>
+<span id="cb36-4"><a href="multidimensional-smoothing.html#cb36-4"></a>Fmod<span class="op">$</span>f2 =<span class="st"> </span>B2 <span class="op">%*%</span><span class="st"> </span>a[r2]</span>
+<span id="cb36-5"><a href="multidimensional-smoothing.html#cb36-5"></a></span>
+<span id="cb36-6"><a href="multidimensional-smoothing.html#cb36-6"></a><span class="co"># Model fit on fine grid</span></span>
+<span id="cb36-7"><a href="multidimensional-smoothing.html#cb36-7"></a>cgrid =<span class="st"> </span><span class="kw">seq</span>(clo, chi, <span class="dt">length =</span> ngrid)</span>
+<span id="cb36-8"><a href="multidimensional-smoothing.html#cb36-8"></a>Bg1 =<span class="st"> </span><span class="kw">bbase</span>(cgrid, clo, chi)</span>
+<span id="cb36-9"><a href="multidimensional-smoothing.html#cb36-9"></a>egrid =<span class="st"> </span><span class="kw">seq</span>(elo, ehi, <span class="dt">length =</span> ngrid)</span>
+<span id="cb36-10"><a href="multidimensional-smoothing.html#cb36-10"></a>Bg2 =<span class="st"> </span><span class="kw">bbase</span>(egrid, elo, ehi)</span>
+<span id="cb36-11"><a href="multidimensional-smoothing.html#cb36-11"></a>zc =<span class="st"> </span>Bg1 <span class="op">%*%</span><span class="st"> </span>a[r1]</span>
+<span id="cb36-12"><a href="multidimensional-smoothing.html#cb36-12"></a>ze =<span class="st"> </span>Bg2 <span class="op">%*%</span><span class="st"> </span>a[r2]</span>
+<span id="cb36-13"><a href="multidimensional-smoothing.html#cb36-13"></a></span>
+<span id="cb36-14"><a href="multidimensional-smoothing.html#cb36-14"></a><span class="co"># Fill data frames for ggplot</span></span>
+<span id="cb36-15"><a href="multidimensional-smoothing.html#cb36-15"></a>Fc =<span class="st"> </span><span class="kw">data.frame</span>(cgrid, zc)</span>
+<span id="cb36-16"><a href="multidimensional-smoothing.html#cb36-16"></a>Fe =<span class="st"> </span><span class="kw">data.frame</span>(egrid, ze)</span>
+<span id="cb36-17"><a href="multidimensional-smoothing.html#cb36-17"></a></span>
+<span id="cb36-18"><a href="multidimensional-smoothing.html#cb36-18"></a><span class="co"># Create plots</span></span>
+<span id="cb36-19"><a href="multidimensional-smoothing.html#cb36-19"></a>plt1 =<span class="st"> </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> C, <span class="dt">y =</span> E), <span class="dt">data =</span> ethanol) <span class="op">+</span></span>
+<span id="cb36-20"><a href="multidimensional-smoothing.html#cb36-20"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">color =</span> <span class="st">&quot;darkgrey&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-21"><a href="multidimensional-smoothing.html#cb36-21"></a><span class="st">       </span><span class="kw">xlab</span>(<span class="st">&quot;Compression ratio (C)&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-22"><a href="multidimensional-smoothing.html#cb36-22"></a><span class="st">       </span><span class="kw">ylab</span>(<span class="st">&quot;Equivalence ratio (E)&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-23"><a href="multidimensional-smoothing.html#cb36-23"></a><span class="st">       </span><span class="kw">ggtitle</span>(<span class="st">&quot;Experiment design&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-24"><a href="multidimensional-smoothing.html#cb36-24"></a><span class="st">       </span><span class="kw">JOPS_theme</span>()</span>
+<span id="cb36-25"><a href="multidimensional-smoothing.html#cb36-25"></a></span>
+<span id="cb36-26"><a href="multidimensional-smoothing.html#cb36-26"></a>plt2 =<span class="st"> </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> E, <span class="dt">y =</span> NOx <span class="op">-</span><span class="st"> </span>f1), <span class="dt">data =</span> Fmod) <span class="op">+</span></span>
+<span id="cb36-27"><a href="multidimensional-smoothing.html#cb36-27"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">color =</span> <span class="st">&quot;darkgrey&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-28"><a href="multidimensional-smoothing.html#cb36-28"></a><span class="st">       </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">x =</span> egrid, <span class="dt">y =</span> ze), <span class="dt">data =</span> Fe, <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-29"><a href="multidimensional-smoothing.html#cb36-29"></a><span class="st">       </span><span class="kw">xlab</span>(<span class="st">&quot;Equivalence ratio&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-30"><a href="multidimensional-smoothing.html#cb36-30"></a><span class="st">       </span><span class="kw">ylab</span>(<span class="st">&quot;Partial residuals&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-31"><a href="multidimensional-smoothing.html#cb36-31"></a><span class="st">       </span><span class="kw">ggtitle</span>(<span class="st">&quot;Partial response&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-32"><a href="multidimensional-smoothing.html#cb36-32"></a><span class="st">       </span><span class="kw">JOPS_theme</span>()</span>
+<span id="cb36-33"><a href="multidimensional-smoothing.html#cb36-33"></a></span>
+<span id="cb36-34"><a href="multidimensional-smoothing.html#cb36-34"></a>plt3 =<span class="st"> </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> C, <span class="dt">y =</span> NOx <span class="op">-</span><span class="st"> </span>f2), <span class="dt">data =</span> Fmod) <span class="op">+</span></span>
+<span id="cb36-35"><a href="multidimensional-smoothing.html#cb36-35"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">color =</span> <span class="st">&quot;darkgrey&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-36"><a href="multidimensional-smoothing.html#cb36-36"></a><span class="st">       </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">x =</span> cgrid, <span class="dt">y =</span> zc), <span class="dt">data =</span> Fc, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span></span>
+<span id="cb36-37"><a href="multidimensional-smoothing.html#cb36-37"></a><span class="st">       </span><span class="kw">xlab</span>(<span class="st">&quot;Compression ratio (C)&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-38"><a href="multidimensional-smoothing.html#cb36-38"></a><span class="st">       </span><span class="kw">ylab</span>(<span class="st">&quot;Partial residuals&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-39"><a href="multidimensional-smoothing.html#cb36-39"></a><span class="st">       </span><span class="kw">ggtitle</span>(<span class="st">&quot;Partial response&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-40"><a href="multidimensional-smoothing.html#cb36-40"></a><span class="st">       </span><span class="kw">JOPS_theme</span>()</span>
+<span id="cb36-41"><a href="multidimensional-smoothing.html#cb36-41"></a></span>
+<span id="cb36-42"><a href="multidimensional-smoothing.html#cb36-42"></a>plt4 =<span class="st"> </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> f1 <span class="op">+</span><span class="st"> </span>f2, <span class="dt">y =</span> NOx), <span class="dt">data =</span> Fmod) <span class="op">+</span></span>
+<span id="cb36-43"><a href="multidimensional-smoothing.html#cb36-43"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">color =</span> <span class="st">&quot;darkgrey&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-44"><a href="multidimensional-smoothing.html#cb36-44"></a><span class="st">      </span><span class="kw">geom_abline</span>(<span class="dt">slope =</span> <span class="dv">1</span>, <span class="dt">intercept =</span> <span class="dv">0</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span></span>
+<span id="cb36-45"><a href="multidimensional-smoothing.html#cb36-45"></a><span class="st">      </span><span class="kw">xlab</span>(<span class="st">&quot;Fitted NOx&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-46"><a href="multidimensional-smoothing.html#cb36-46"></a><span class="st">      </span><span class="kw">ylab</span>(<span class="st">&quot;Observed &quot;</span>) <span class="op">+</span></span>
+<span id="cb36-47"><a href="multidimensional-smoothing.html#cb36-47"></a><span class="st">      </span><span class="kw">ggtitle</span>(<span class="st">&quot;Compare fit to data&quot;</span>) <span class="op">+</span></span>
+<span id="cb36-48"><a href="multidimensional-smoothing.html#cb36-48"></a><span class="st">      </span><span class="kw">JOPS_theme</span>()</span>
+<span id="cb36-49"><a href="multidimensional-smoothing.html#cb36-49"></a></span>
+<span id="cb36-50"><a href="multidimensional-smoothing.html#cb36-50"></a><span class="co"># Make and save pdf</span></span>
+<span id="cb36-51"><a href="multidimensional-smoothing.html#cb36-51"></a><span class="kw">grid.arrange</span>(plt1, plt2, plt3, plt4, <span class="dt">ncol =</span> <span class="dv">2</span>, <span class="dt">nrow =</span> <span class="dv">2</span>)</span></code></pre></div>
 <p><img src="_main_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
 
 </div>
 <div id="figure-4.2" class="section level2 hasAnchor">
 <h2><span class="header-section-number">4.2</span> Figure 4.2<a href="multidimensional-smoothing.html#figure-4.2" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="multidimensional-smoothing.html#cb36-1"></a><span class="kw">library</span>(SemiPar)</span>
-<span id="cb36-2"><a href="multidimensional-smoothing.html#cb36-2"></a><span class="kw">library</span>(reshape2)</span></code></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb37-1"><a href="multidimensional-smoothing.html#cb37-1"></a><span class="kw">library</span>(SemiPar)</span>
+<span id="cb37-2"><a href="multidimensional-smoothing.html#cb37-2"></a><span class="kw">library</span>(reshape2)</span></code></pre></div>
 <pre><code>#&gt; 
 #&gt; Attaching package: &#39;reshape2&#39;</code></pre>
 <pre><code>#&gt; The following objects are masked from &#39;package:data.table&#39;:
 #&gt; 
 #&gt;     dcast, melt</code></pre>
-<div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb39-1"><a href="multidimensional-smoothing.html#cb39-1"></a><span class="co"># library(ggplot2)</span></span>
-<span id="cb39-2"><a href="multidimensional-smoothing.html#cb39-2"></a><span class="co"># library(JOPS)</span></span>
-<span id="cb39-3"><a href="multidimensional-smoothing.html#cb39-3"></a><span class="co"># library(metR)</span></span>
-<span id="cb39-4"><a href="multidimensional-smoothing.html#cb39-4"></a><span class="kw">require2</span>(metR)</span></code></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="multidimensional-smoothing.html#cb40-1"></a><span class="co"># library(ggplot2)</span></span>
+<span id="cb40-2"><a href="multidimensional-smoothing.html#cb40-2"></a><span class="co"># library(JOPS)</span></span>
+<span id="cb40-3"><a href="multidimensional-smoothing.html#cb40-3"></a><span class="co"># library(metR)</span></span>
+<span id="cb40-4"><a href="multidimensional-smoothing.html#cb40-4"></a><span class="kw">require2</span>(metR)</span></code></pre></div>
 <pre><code>#&gt; Loading required package: metR</code></pre>
-<div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="multidimensional-smoothing.html#cb41-1"></a><span class="co"># Image of GAM surface (Ethanol data)</span></span>
-<span id="cb41-2"><a href="multidimensional-smoothing.html#cb41-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
-<span id="cb41-3"><a href="multidimensional-smoothing.html#cb41-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
-<span id="cb41-4"><a href="multidimensional-smoothing.html#cb41-4"></a><span class="co"># Get the data</span></span>
-<span id="cb41-5"><a href="multidimensional-smoothing.html#cb41-5"></a><span class="kw">data</span>(ethanol)</span>
-<span id="cb41-6"><a href="multidimensional-smoothing.html#cb41-6"></a></span>
-<span id="cb41-7"><a href="multidimensional-smoothing.html#cb41-7"></a><span class="co"># Basis matrix for compression ratio (C)</span></span>
-<span id="cb41-8"><a href="multidimensional-smoothing.html#cb41-8"></a>clo =<span class="st"> </span><span class="fl">7.5</span></span>
-<span id="cb41-9"><a href="multidimensional-smoothing.html#cb41-9"></a>chi =<span class="st"> </span><span class="dv">18</span></span>
-<span id="cb41-10"><a href="multidimensional-smoothing.html#cb41-10"></a>ngrid =<span class="st"> </span><span class="dv">50</span></span>
-<span id="cb41-11"><a href="multidimensional-smoothing.html#cb41-11"></a>B1 =<span class="st"> </span><span class="kw">bbase</span>(ethanol<span class="op">$</span>C, clo, chi)</span>
-<span id="cb41-12"><a href="multidimensional-smoothing.html#cb41-12"></a></span>
-<span id="cb41-13"><a href="multidimensional-smoothing.html#cb41-13"></a><span class="co"># Basis matrix for equivalenc ratio (E)</span></span>
-<span id="cb41-14"><a href="multidimensional-smoothing.html#cb41-14"></a>elo =<span class="st"> </span><span class="fl">0.5</span></span>
-<span id="cb41-15"><a href="multidimensional-smoothing.html#cb41-15"></a>ehi =<span class="st"> </span><span class="fl">1.25</span></span>
-<span id="cb41-16"><a href="multidimensional-smoothing.html#cb41-16"></a>B2 =<span class="st"> </span><span class="kw">bbase</span>(ethanol<span class="op">$</span>E, elo, ehi)</span>
-<span id="cb41-17"><a href="multidimensional-smoothing.html#cb41-17"></a></span>
-<span id="cb41-18"><a href="multidimensional-smoothing.html#cb41-18"></a><span class="co"># Penalty matrix</span></span>
-<span id="cb41-19"><a href="multidimensional-smoothing.html#cb41-19"></a>n =<span class="st"> </span><span class="kw">ncol</span>(B1)</span>
-<span id="cb41-20"><a href="multidimensional-smoothing.html#cb41-20"></a>D =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(n), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
-<span id="cb41-21"><a href="multidimensional-smoothing.html#cb41-21"></a>r1 =<span class="st"> </span><span class="dv">1</span><span class="op">:</span>n</span>
-<span id="cb41-22"><a href="multidimensional-smoothing.html#cb41-22"></a>r2 =<span class="st"> </span>r1 <span class="op">+</span><span class="st"> </span>n</span>
-<span id="cb41-23"><a href="multidimensional-smoothing.html#cb41-23"></a>lambdas =<span class="st"> </span><span class="kw">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>)</span>
-<span id="cb41-24"><a href="multidimensional-smoothing.html#cb41-24"></a>P =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(lambdas), <span class="kw">t</span>(D) <span class="op">%*%</span><span class="st"> </span>D)</span>
-<span id="cb41-25"><a href="multidimensional-smoothing.html#cb41-25"></a>P =<span class="st"> </span>P <span class="op">+</span><span class="st"> </span><span class="kw">diag</span>(<span class="dv">2</span> <span class="op">*</span><span class="st"> </span>n) <span class="op">*</span><span class="st"> </span><span class="fl">1e-06</span></span>
-<span id="cb41-26"><a href="multidimensional-smoothing.html#cb41-26"></a></span>
-<span id="cb41-27"><a href="multidimensional-smoothing.html#cb41-27"></a><span class="co"># Fit the model</span></span>
-<span id="cb41-28"><a href="multidimensional-smoothing.html#cb41-28"></a>B =<span class="st"> </span><span class="kw">cbind</span>(B1, B2)</span>
-<span id="cb41-29"><a href="multidimensional-smoothing.html#cb41-29"></a>y =<span class="st"> </span>ethanol<span class="op">$</span>NOx</span>
-<span id="cb41-30"><a href="multidimensional-smoothing.html#cb41-30"></a>a =<span class="st"> </span><span class="kw">solve</span>(<span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B <span class="op">+</span><span class="st"> </span>P, <span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>y)</span>
-<span id="cb41-31"><a href="multidimensional-smoothing.html#cb41-31"></a>mu =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
-<span id="cb41-32"><a href="multidimensional-smoothing.html#cb41-32"></a><span class="kw">cat</span>(<span class="st">&#39;SD of residuals:&#39;</span>, <span class="kw">sd</span>(y <span class="op">-</span><span class="st"> </span>mu), <span class="st">&#39;</span><span class="ch">\n</span><span class="st">&#39;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb42-1"><a href="multidimensional-smoothing.html#cb42-1"></a><span class="co"># Image of GAM surface (Ethanol data)</span></span>
+<span id="cb42-2"><a href="multidimensional-smoothing.html#cb42-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
+<span id="cb42-3"><a href="multidimensional-smoothing.html#cb42-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
+<span id="cb42-4"><a href="multidimensional-smoothing.html#cb42-4"></a><span class="co"># Get the data</span></span>
+<span id="cb42-5"><a href="multidimensional-smoothing.html#cb42-5"></a><span class="kw">data</span>(ethanol)</span>
+<span id="cb42-6"><a href="multidimensional-smoothing.html#cb42-6"></a></span>
+<span id="cb42-7"><a href="multidimensional-smoothing.html#cb42-7"></a><span class="co"># Basis matrix for compression ratio (C)</span></span>
+<span id="cb42-8"><a href="multidimensional-smoothing.html#cb42-8"></a>clo =<span class="st"> </span><span class="fl">7.5</span></span>
+<span id="cb42-9"><a href="multidimensional-smoothing.html#cb42-9"></a>chi =<span class="st"> </span><span class="dv">18</span></span>
+<span id="cb42-10"><a href="multidimensional-smoothing.html#cb42-10"></a>ngrid =<span class="st"> </span><span class="dv">50</span></span>
+<span id="cb42-11"><a href="multidimensional-smoothing.html#cb42-11"></a>B1 =<span class="st"> </span><span class="kw">bbase</span>(ethanol<span class="op">$</span>C, clo, chi)</span>
+<span id="cb42-12"><a href="multidimensional-smoothing.html#cb42-12"></a></span>
+<span id="cb42-13"><a href="multidimensional-smoothing.html#cb42-13"></a><span class="co"># Basis matrix for equivalenc ratio (E)</span></span>
+<span id="cb42-14"><a href="multidimensional-smoothing.html#cb42-14"></a>elo =<span class="st"> </span><span class="fl">0.5</span></span>
+<span id="cb42-15"><a href="multidimensional-smoothing.html#cb42-15"></a>ehi =<span class="st"> </span><span class="fl">1.25</span></span>
+<span id="cb42-16"><a href="multidimensional-smoothing.html#cb42-16"></a>B2 =<span class="st"> </span><span class="kw">bbase</span>(ethanol<span class="op">$</span>E, elo, ehi)</span>
+<span id="cb42-17"><a href="multidimensional-smoothing.html#cb42-17"></a></span>
+<span id="cb42-18"><a href="multidimensional-smoothing.html#cb42-18"></a><span class="co"># Penalty matrix</span></span>
+<span id="cb42-19"><a href="multidimensional-smoothing.html#cb42-19"></a>n =<span class="st"> </span><span class="kw">ncol</span>(B1)</span>
+<span id="cb42-20"><a href="multidimensional-smoothing.html#cb42-20"></a>D =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(n), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
+<span id="cb42-21"><a href="multidimensional-smoothing.html#cb42-21"></a>r1 =<span class="st"> </span><span class="dv">1</span><span class="op">:</span>n</span>
+<span id="cb42-22"><a href="multidimensional-smoothing.html#cb42-22"></a>r2 =<span class="st"> </span>r1 <span class="op">+</span><span class="st"> </span>n</span>
+<span id="cb42-23"><a href="multidimensional-smoothing.html#cb42-23"></a>lambdas =<span class="st"> </span><span class="kw">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>)</span>
+<span id="cb42-24"><a href="multidimensional-smoothing.html#cb42-24"></a>P =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(lambdas), <span class="kw">t</span>(D) <span class="op">%*%</span><span class="st"> </span>D)</span>
+<span id="cb42-25"><a href="multidimensional-smoothing.html#cb42-25"></a>P =<span class="st"> </span>P <span class="op">+</span><span class="st"> </span><span class="kw">diag</span>(<span class="dv">2</span> <span class="op">*</span><span class="st"> </span>n) <span class="op">*</span><span class="st"> </span><span class="fl">1e-06</span></span>
+<span id="cb42-26"><a href="multidimensional-smoothing.html#cb42-26"></a></span>
+<span id="cb42-27"><a href="multidimensional-smoothing.html#cb42-27"></a><span class="co"># Fit the model</span></span>
+<span id="cb42-28"><a href="multidimensional-smoothing.html#cb42-28"></a>B =<span class="st"> </span><span class="kw">cbind</span>(B1, B2)</span>
+<span id="cb42-29"><a href="multidimensional-smoothing.html#cb42-29"></a>y =<span class="st"> </span>ethanol<span class="op">$</span>NOx</span>
+<span id="cb42-30"><a href="multidimensional-smoothing.html#cb42-30"></a>a =<span class="st"> </span><span class="kw">solve</span>(<span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B <span class="op">+</span><span class="st"> </span>P, <span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>y)</span>
+<span id="cb42-31"><a href="multidimensional-smoothing.html#cb42-31"></a>mu =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
+<span id="cb42-32"><a href="multidimensional-smoothing.html#cb42-32"></a><span class="kw">cat</span>(<span class="st">&#39;SD of residuals:&#39;</span>, <span class="kw">sd</span>(y <span class="op">-</span><span class="st"> </span>mu), <span class="st">&#39;</span><span class="ch">\n</span><span class="st">&#39;</span>)</span></code></pre></div>
 <pre><code>#&gt; SD of residuals: 0.2242995</code></pre>
-<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="multidimensional-smoothing.html#cb43-1"></a><span class="co"># Add fitted components to data frame (for ggplot)</span></span>
-<span id="cb43-2"><a href="multidimensional-smoothing.html#cb43-2"></a>Fmod =<span class="st"> </span>ethanol</span>
-<span id="cb43-3"><a href="multidimensional-smoothing.html#cb43-3"></a>Fmod<span class="op">$</span>f1 =<span class="st"> </span>B1 <span class="op">%*%</span><span class="st"> </span>a[r1]</span>
-<span id="cb43-4"><a href="multidimensional-smoothing.html#cb43-4"></a>Fmod<span class="op">$</span>f2 =<span class="st"> </span>B2 <span class="op">%*%</span><span class="st"> </span>a[r2]</span>
-<span id="cb43-5"><a href="multidimensional-smoothing.html#cb43-5"></a></span>
-<span id="cb43-6"><a href="multidimensional-smoothing.html#cb43-6"></a><span class="co"># Model fit on fine grid</span></span>
-<span id="cb43-7"><a href="multidimensional-smoothing.html#cb43-7"></a>cgrid =<span class="st"> </span><span class="kw">seq</span>(clo, chi, <span class="dt">length =</span> ngrid)</span>
-<span id="cb43-8"><a href="multidimensional-smoothing.html#cb43-8"></a>Bg1 =<span class="st"> </span><span class="kw">bbase</span>(cgrid, clo, chi)</span>
-<span id="cb43-9"><a href="multidimensional-smoothing.html#cb43-9"></a>egrid =<span class="st"> </span><span class="kw">seq</span>(elo, ehi, <span class="dt">length =</span> ngrid)</span>
-<span id="cb43-10"><a href="multidimensional-smoothing.html#cb43-10"></a>Bg2 =<span class="st"> </span><span class="kw">bbase</span>(egrid, elo, ehi)</span>
-<span id="cb43-11"><a href="multidimensional-smoothing.html#cb43-11"></a>zc =<span class="st"> </span>Bg1 <span class="op">%*%</span><span class="st"> </span>a[r1]</span>
-<span id="cb43-12"><a href="multidimensional-smoothing.html#cb43-12"></a>ze =<span class="st"> </span>Bg2 <span class="op">%*%</span><span class="st"> </span>a[r2]</span>
-<span id="cb43-13"><a href="multidimensional-smoothing.html#cb43-13"></a>Fit =<span class="st"> </span><span class="kw">outer</span>(<span class="kw">c</span>(zc), <span class="kw">c</span>(ze), <span class="st">&quot;+&quot;</span>)</span>
-<span id="cb43-14"><a href="multidimensional-smoothing.html#cb43-14"></a></span>
-<span id="cb43-15"><a href="multidimensional-smoothing.html#cb43-15"></a><span class="co"># Fill data frames for ggplot</span></span>
-<span id="cb43-16"><a href="multidimensional-smoothing.html#cb43-16"></a>Fc =<span class="st"> </span><span class="kw">data.frame</span>(cgrid, zc)</span>
-<span id="cb43-17"><a href="multidimensional-smoothing.html#cb43-17"></a>Fe =<span class="st"> </span><span class="kw">data.frame</span>(egrid, ze)</span>
-<span id="cb43-18"><a href="multidimensional-smoothing.html#cb43-18"></a></span>
-<span id="cb43-19"><a href="multidimensional-smoothing.html#cb43-19"></a><span class="co"># Data frame for plotting data points with signs of residuals</span></span>
-<span id="cb43-20"><a href="multidimensional-smoothing.html#cb43-20"></a>x =<span class="st"> </span>ethanol<span class="op">$</span>C</span>
-<span id="cb43-21"><a href="multidimensional-smoothing.html#cb43-21"></a>y =<span class="st"> </span>ethanol<span class="op">$</span>E</span>
-<span id="cb43-22"><a href="multidimensional-smoothing.html#cb43-22"></a>z =<span class="st"> </span>ethanol<span class="op">$</span>NOx</span>
-<span id="cb43-23"><a href="multidimensional-smoothing.html#cb43-23"></a>cols =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;yellow&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>mu) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
-<span id="cb43-24"><a href="multidimensional-smoothing.html#cb43-24"></a>pchs =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;+&quot;</span>, <span class="st">&quot;-&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>mu) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
-<span id="cb43-25"><a href="multidimensional-smoothing.html#cb43-25"></a>Data =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> x, <span class="dt">y =</span> y, <span class="dt">cols =</span> cols, <span class="dt">pchs =</span> pchs, <span class="dt">NOx =</span> z)</span>
-<span id="cb43-26"><a href="multidimensional-smoothing.html#cb43-26"></a></span>
-<span id="cb43-27"><a href="multidimensional-smoothing.html#cb43-27"></a><span class="co"># Turn matrix into a &quot;long&quot; data frame</span></span>
-<span id="cb43-28"><a href="multidimensional-smoothing.html#cb43-28"></a>Mu =<span class="st"> </span>Fit</span>
-<span id="cb43-29"><a href="multidimensional-smoothing.html#cb43-29"></a><span class="kw">rownames</span>(Mu) =<span class="st"> </span>cgrid</span>
-<span id="cb43-30"><a href="multidimensional-smoothing.html#cb43-30"></a><span class="kw">colnames</span>(Mu) =<span class="st"> </span>egrid</span>
-<span id="cb43-31"><a href="multidimensional-smoothing.html#cb43-31"></a>dens &lt;-<span class="st"> </span><span class="kw">melt</span>(Mu)</span>
-<span id="cb43-32"><a href="multidimensional-smoothing.html#cb43-32"></a><span class="kw">names</span>(dens) =<span class="st"> </span><span class="kw">c</span>(<span class="st">&#39;x&#39;</span>, <span class="st">&#39;y&#39;</span>, <span class="st">&#39;NOx&#39;</span>)</span>
-<span id="cb43-33"><a href="multidimensional-smoothing.html#cb43-33"></a></span>
-<span id="cb43-34"><a href="multidimensional-smoothing.html#cb43-34"></a><span class="co"># Plot fit with contours</span></span>
-<span id="cb43-35"><a href="multidimensional-smoothing.html#cb43-35"></a>sl =<span class="st"> </span>T</span>
-<span id="cb43-36"><a href="multidimensional-smoothing.html#cb43-36"></a>ccol =<span class="st"> &#39;blue&#39;</span></span>
-<span id="cb43-37"><a href="multidimensional-smoothing.html#cb43-37"></a>plt =<span class="st"> </span><span class="kw">ggplot</span>(dens,  <span class="kw">aes</span>(x, y, <span class="dt">fill =</span> NOx)) <span class="op">+</span></span>
-<span id="cb43-38"><a href="multidimensional-smoothing.html#cb43-38"></a><span class="st">       </span><span class="kw">geom_raster</span>(<span class="dt">show.legend =</span> sl) <span class="op">+</span></span>
-<span id="cb43-39"><a href="multidimensional-smoothing.html#cb43-39"></a><span class="st">       </span><span class="kw">scale_fill_gradientn</span>(<span class="dt">colours =</span> <span class="kw">terrain.colors</span>(<span class="dv">100</span>))<span class="op">+</span></span>
-<span id="cb43-40"><a href="multidimensional-smoothing.html#cb43-40"></a><span class="st">       </span><span class="kw">geom_contour</span>(<span class="dt">data =</span> dens, <span class="kw">aes</span>(<span class="dt">z =</span> NOx), <span class="dt">color =</span> ccol, <span class="dt">show.legend =</span> T) <span class="op">+</span></span>
-<span id="cb43-41"><a href="multidimensional-smoothing.html#cb43-41"></a><span class="st">       </span><span class="kw">geom_text_contour</span>(<span class="kw">aes</span>(<span class="dt">z =</span> NOx), <span class="dt">color =</span> ccol, <span class="dt">size =</span> <span class="dv">3</span>)  <span class="op">+</span></span>
-<span id="cb43-42"><a href="multidimensional-smoothing.html#cb43-42"></a><span class="st">       </span><span class="kw">ylab</span>(<span class="st">&#39;Equivalence ratio&#39;</span>) <span class="op">+</span><span class="st"> </span><span class="kw">xlab</span>(<span class="st">&#39;Compression ratio&#39;</span>) <span class="op">+</span></span>
-<span id="cb43-43"><a href="multidimensional-smoothing.html#cb43-43"></a><span class="st">       </span><span class="kw">ggtitle</span>(<span class="st">&quot;GAM for NOx emission, ethanol data&quot;</span>) <span class="op">+</span></span>
-<span id="cb43-44"><a href="multidimensional-smoothing.html#cb43-44"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">data =</span> Data, <span class="kw">aes</span>(<span class="dt">x =</span>x, <span class="dt">y =</span> y),  <span class="dt">shape =</span> pchs, <span class="dt">size =</span> <span class="dv">5</span>) <span class="op">+</span></span>
-<span id="cb43-45"><a href="multidimensional-smoothing.html#cb43-45"></a><span class="st">       </span><span class="kw">JOPS_theme</span>() <span class="op">+</span></span>
-<span id="cb43-46"><a href="multidimensional-smoothing.html#cb43-46"></a><span class="st">       </span><span class="kw">theme</span>(<span class="dt">panel.grid.major =</span> <span class="kw">element_blank</span>(),</span>
-<span id="cb43-47"><a href="multidimensional-smoothing.html#cb43-47"></a>             <span class="dt">panel.grid.minor =</span> <span class="kw">element_blank</span>(),</span>
-<span id="cb43-48"><a href="multidimensional-smoothing.html#cb43-48"></a>             <span class="dt">plot.title =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">16</span>),</span>
-<span id="cb43-49"><a href="multidimensional-smoothing.html#cb43-49"></a>             <span class="dt">axis.title.x =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">16</span>),</span>
-<span id="cb43-50"><a href="multidimensional-smoothing.html#cb43-50"></a>             <span class="dt">axis.title.y =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">16</span>))</span>
-<span id="cb43-51"><a href="multidimensional-smoothing.html#cb43-51"></a></span>
-<span id="cb43-52"><a href="multidimensional-smoothing.html#cb43-52"></a><span class="kw">print</span>(plt)</span></code></pre></div>
+<div class="sourceCode" id="cb44"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb44-1"><a href="multidimensional-smoothing.html#cb44-1"></a><span class="co"># Add fitted components to data frame (for ggplot)</span></span>
+<span id="cb44-2"><a href="multidimensional-smoothing.html#cb44-2"></a>Fmod =<span class="st"> </span>ethanol</span>
+<span id="cb44-3"><a href="multidimensional-smoothing.html#cb44-3"></a>Fmod<span class="op">$</span>f1 =<span class="st"> </span>B1 <span class="op">%*%</span><span class="st"> </span>a[r1]</span>
+<span id="cb44-4"><a href="multidimensional-smoothing.html#cb44-4"></a>Fmod<span class="op">$</span>f2 =<span class="st"> </span>B2 <span class="op">%*%</span><span class="st"> </span>a[r2]</span>
+<span id="cb44-5"><a href="multidimensional-smoothing.html#cb44-5"></a></span>
+<span id="cb44-6"><a href="multidimensional-smoothing.html#cb44-6"></a><span class="co"># Model fit on fine grid</span></span>
+<span id="cb44-7"><a href="multidimensional-smoothing.html#cb44-7"></a>cgrid =<span class="st"> </span><span class="kw">seq</span>(clo, chi, <span class="dt">length =</span> ngrid)</span>
+<span id="cb44-8"><a href="multidimensional-smoothing.html#cb44-8"></a>Bg1 =<span class="st"> </span><span class="kw">bbase</span>(cgrid, clo, chi)</span>
+<span id="cb44-9"><a href="multidimensional-smoothing.html#cb44-9"></a>egrid =<span class="st"> </span><span class="kw">seq</span>(elo, ehi, <span class="dt">length =</span> ngrid)</span>
+<span id="cb44-10"><a href="multidimensional-smoothing.html#cb44-10"></a>Bg2 =<span class="st"> </span><span class="kw">bbase</span>(egrid, elo, ehi)</span>
+<span id="cb44-11"><a href="multidimensional-smoothing.html#cb44-11"></a>zc =<span class="st"> </span>Bg1 <span class="op">%*%</span><span class="st"> </span>a[r1]</span>
+<span id="cb44-12"><a href="multidimensional-smoothing.html#cb44-12"></a>ze =<span class="st"> </span>Bg2 <span class="op">%*%</span><span class="st"> </span>a[r2]</span>
+<span id="cb44-13"><a href="multidimensional-smoothing.html#cb44-13"></a>Fit =<span class="st"> </span><span class="kw">outer</span>(<span class="kw">c</span>(zc), <span class="kw">c</span>(ze), <span class="st">&quot;+&quot;</span>)</span>
+<span id="cb44-14"><a href="multidimensional-smoothing.html#cb44-14"></a></span>
+<span id="cb44-15"><a href="multidimensional-smoothing.html#cb44-15"></a><span class="co"># Fill data frames for ggplot</span></span>
+<span id="cb44-16"><a href="multidimensional-smoothing.html#cb44-16"></a>Fc =<span class="st"> </span><span class="kw">data.frame</span>(cgrid, zc)</span>
+<span id="cb44-17"><a href="multidimensional-smoothing.html#cb44-17"></a>Fe =<span class="st"> </span><span class="kw">data.frame</span>(egrid, ze)</span>
+<span id="cb44-18"><a href="multidimensional-smoothing.html#cb44-18"></a></span>
+<span id="cb44-19"><a href="multidimensional-smoothing.html#cb44-19"></a><span class="co"># Data frame for plotting data points with signs of residuals</span></span>
+<span id="cb44-20"><a href="multidimensional-smoothing.html#cb44-20"></a>x =<span class="st"> </span>ethanol<span class="op">$</span>C</span>
+<span id="cb44-21"><a href="multidimensional-smoothing.html#cb44-21"></a>y =<span class="st"> </span>ethanol<span class="op">$</span>E</span>
+<span id="cb44-22"><a href="multidimensional-smoothing.html#cb44-22"></a>z =<span class="st"> </span>ethanol<span class="op">$</span>NOx</span>
+<span id="cb44-23"><a href="multidimensional-smoothing.html#cb44-23"></a>cols =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;yellow&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>mu) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
+<span id="cb44-24"><a href="multidimensional-smoothing.html#cb44-24"></a>pchs =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;+&quot;</span>, <span class="st">&quot;-&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>mu) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
+<span id="cb44-25"><a href="multidimensional-smoothing.html#cb44-25"></a>Data =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> x, <span class="dt">y =</span> y, <span class="dt">cols =</span> cols, <span class="dt">pchs =</span> pchs, <span class="dt">NOx =</span> z)</span>
+<span id="cb44-26"><a href="multidimensional-smoothing.html#cb44-26"></a></span>
+<span id="cb44-27"><a href="multidimensional-smoothing.html#cb44-27"></a><span class="co"># Turn matrix into a &quot;long&quot; data frame</span></span>
+<span id="cb44-28"><a href="multidimensional-smoothing.html#cb44-28"></a>Mu =<span class="st"> </span>Fit</span>
+<span id="cb44-29"><a href="multidimensional-smoothing.html#cb44-29"></a><span class="kw">rownames</span>(Mu) =<span class="st"> </span>cgrid</span>
+<span id="cb44-30"><a href="multidimensional-smoothing.html#cb44-30"></a><span class="kw">colnames</span>(Mu) =<span class="st"> </span>egrid</span>
+<span id="cb44-31"><a href="multidimensional-smoothing.html#cb44-31"></a>dens &lt;-<span class="st"> </span><span class="kw">melt</span>(Mu)</span>
+<span id="cb44-32"><a href="multidimensional-smoothing.html#cb44-32"></a><span class="kw">names</span>(dens) =<span class="st"> </span><span class="kw">c</span>(<span class="st">&#39;x&#39;</span>, <span class="st">&#39;y&#39;</span>, <span class="st">&#39;NOx&#39;</span>)</span>
+<span id="cb44-33"><a href="multidimensional-smoothing.html#cb44-33"></a></span>
+<span id="cb44-34"><a href="multidimensional-smoothing.html#cb44-34"></a><span class="co"># Plot fit with contours</span></span>
+<span id="cb44-35"><a href="multidimensional-smoothing.html#cb44-35"></a>sl =<span class="st"> </span>T</span>
+<span id="cb44-36"><a href="multidimensional-smoothing.html#cb44-36"></a>ccol =<span class="st"> &#39;blue&#39;</span></span>
+<span id="cb44-37"><a href="multidimensional-smoothing.html#cb44-37"></a>plt =<span class="st"> </span><span class="kw">ggplot</span>(dens,  <span class="kw">aes</span>(x, y, <span class="dt">fill =</span> NOx)) <span class="op">+</span></span>
+<span id="cb44-38"><a href="multidimensional-smoothing.html#cb44-38"></a><span class="st">       </span><span class="kw">geom_raster</span>(<span class="dt">show.legend =</span> sl) <span class="op">+</span></span>
+<span id="cb44-39"><a href="multidimensional-smoothing.html#cb44-39"></a><span class="st">       </span><span class="kw">scale_fill_gradientn</span>(<span class="dt">colours =</span> <span class="kw">terrain.colors</span>(<span class="dv">100</span>))<span class="op">+</span></span>
+<span id="cb44-40"><a href="multidimensional-smoothing.html#cb44-40"></a><span class="st">       </span><span class="kw">geom_contour</span>(<span class="dt">data =</span> dens, <span class="kw">aes</span>(<span class="dt">z =</span> NOx), <span class="dt">color =</span> ccol, <span class="dt">show.legend =</span> T) <span class="op">+</span></span>
+<span id="cb44-41"><a href="multidimensional-smoothing.html#cb44-41"></a><span class="st">       </span><span class="kw">geom_text_contour</span>(<span class="kw">aes</span>(<span class="dt">z =</span> NOx), <span class="dt">color =</span> ccol, <span class="dt">size =</span> <span class="dv">3</span>)  <span class="op">+</span></span>
+<span id="cb44-42"><a href="multidimensional-smoothing.html#cb44-42"></a><span class="st">       </span><span class="kw">ylab</span>(<span class="st">&#39;Equivalence ratio&#39;</span>) <span class="op">+</span><span class="st"> </span><span class="kw">xlab</span>(<span class="st">&#39;Compression ratio&#39;</span>) <span class="op">+</span></span>
+<span id="cb44-43"><a href="multidimensional-smoothing.html#cb44-43"></a><span class="st">       </span><span class="kw">ggtitle</span>(<span class="st">&quot;GAM for NOx emission, ethanol data&quot;</span>) <span class="op">+</span></span>
+<span id="cb44-44"><a href="multidimensional-smoothing.html#cb44-44"></a><span class="st">       </span><span class="kw">geom_point</span>(<span class="dt">data =</span> Data, <span class="kw">aes</span>(<span class="dt">x =</span>x, <span class="dt">y =</span> y),  <span class="dt">shape =</span> pchs, <span class="dt">size =</span> <span class="dv">5</span>) <span class="op">+</span></span>
+<span id="cb44-45"><a href="multidimensional-smoothing.html#cb44-45"></a><span class="st">       </span><span class="kw">JOPS_theme</span>() <span class="op">+</span></span>
+<span id="cb44-46"><a href="multidimensional-smoothing.html#cb44-46"></a><span class="st">       </span><span class="kw">theme</span>(<span class="dt">panel.grid.major =</span> <span class="kw">element_blank</span>(),</span>
+<span id="cb44-47"><a href="multidimensional-smoothing.html#cb44-47"></a>             <span class="dt">panel.grid.minor =</span> <span class="kw">element_blank</span>(),</span>
+<span id="cb44-48"><a href="multidimensional-smoothing.html#cb44-48"></a>             <span class="dt">plot.title =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">16</span>),</span>
+<span id="cb44-49"><a href="multidimensional-smoothing.html#cb44-49"></a>             <span class="dt">axis.title.x =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">16</span>),</span>
+<span id="cb44-50"><a href="multidimensional-smoothing.html#cb44-50"></a>             <span class="dt">axis.title.y =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">16</span>))</span>
+<span id="cb44-51"><a href="multidimensional-smoothing.html#cb44-51"></a></span>
+<span id="cb44-52"><a href="multidimensional-smoothing.html#cb44-52"></a><span class="kw">print</span>(plt)</span></code></pre></div>
+<pre><code>#&gt; Warning: The following aesthetics were dropped during statistical transformation: fill
+#&gt; ℹ This can happen when ggplot fails to infer the correct grouping structure in
+#&gt;   the data.
+#&gt; ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+#&gt;   variable into a factor?
+#&gt; The following aesthetics were dropped during statistical transformation: fill
+#&gt; ℹ This can happen when ggplot fails to infer the correct grouping structure in
+#&gt;   the data.
+#&gt; ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+#&gt;   variable into a factor?</code></pre>
 <p><img src="_main_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
 
 </div>
 <div id="figure-4.8" class="section level2 hasAnchor">
 <h2><span class="header-section-number">4.3</span> Figure 4.8<a href="multidimensional-smoothing.html#figure-4.8" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<div class="sourceCode" id="cb44"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb44-1"><a href="multidimensional-smoothing.html#cb44-1"></a><span class="kw">library</span>(SemiPar)</span>
-<span id="cb44-2"><a href="multidimensional-smoothing.html#cb44-2"></a><span class="kw">library</span>(fields)</span>
-<span id="cb44-3"><a href="multidimensional-smoothing.html#cb44-3"></a><span class="kw">library</span>(spam)</span>
-<span id="cb44-4"><a href="multidimensional-smoothing.html#cb44-4"></a><span class="kw">library</span>(JOPS)</span>
-<span id="cb44-5"><a href="multidimensional-smoothing.html#cb44-5"></a><span class="kw">library</span>(JOPSbook)</span></code></pre></div>
+<div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="multidimensional-smoothing.html#cb46-1"></a><span class="kw">library</span>(SemiPar)</span>
+<span id="cb46-2"><a href="multidimensional-smoothing.html#cb46-2"></a><span class="kw">library</span>(fields)</span>
+<span id="cb46-3"><a href="multidimensional-smoothing.html#cb46-3"></a><span class="kw">library</span>(spam)</span>
+<span id="cb46-4"><a href="multidimensional-smoothing.html#cb46-4"></a><span class="kw">library</span>(JOPS)</span>
+<span id="cb46-5"><a href="multidimensional-smoothing.html#cb46-5"></a><span class="kw">library</span>(JOPSbook)</span></code></pre></div>
 <p>Tensor product P-spline fit (Ethanol data).</p>
 <p>A graph in the book ’Practical Smoothing. The Joys of P-splines.
 Paul Eilers and Brian Marx, 2019</p>
-<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="multidimensional-smoothing.html#cb45-1"></a>func &lt;-<span class="st"> </span><span class="cf">function</span>(x, y, range, </span>
-<span id="cb45-2"><a href="multidimensional-smoothing.html#cb45-2"></a>  <span class="dt">yseg =</span> <span class="dv">10</span>, <span class="dt">xseg =</span> <span class="dv">10</span>, <span class="dt">deg =</span> <span class="dv">3</span>, </span>
-<span id="cb45-3"><a href="multidimensional-smoothing.html#cb45-3"></a>  <span class="dt">u =</span> <span class="ot">NULL</span>, <span class="dt">v =</span> <span class="ot">NULL</span>, </span>
-<span id="cb45-4"><a href="multidimensional-smoothing.html#cb45-4"></a>  <span class="dt">lambda =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>), <span class="dt">plot =</span> <span class="ot">TRUE</span>, ...) {</span>
-<span id="cb45-5"><a href="multidimensional-smoothing.html#cb45-5"></a></span>
-<span id="cb45-6"><a href="multidimensional-smoothing.html#cb45-6"></a>  <span class="cf">if</span> (<span class="kw">is.null</span>(u)) u &lt;-<span class="st"> </span><span class="kw">seq</span>(range[<span class="dv">1</span>], range[<span class="dv">2</span>], <span class="dt">length =</span> <span class="kw">length</span>(x))</span>
-<span id="cb45-7"><a href="multidimensional-smoothing.html#cb45-7"></a>  <span class="cf">if</span> (<span class="kw">is.null</span>(v)) v &lt;-<span class="st"> </span><span class="kw">seq</span>(range[<span class="dv">3</span>], range[<span class="dv">4</span>], <span class="dt">length =</span> <span class="kw">length</span>(y))</span>
-<span id="cb45-8"><a href="multidimensional-smoothing.html#cb45-8"></a></span>
-<span id="cb45-9"><a href="multidimensional-smoothing.html#cb45-9"></a>  xpars &lt;-<span class="st"> </span><span class="kw">c</span>(range[<span class="dv">1</span>], range[<span class="dv">2</span>], xseg, deg)</span>
-<span id="cb45-10"><a href="multidimensional-smoothing.html#cb45-10"></a>  ypars &lt;-<span class="st"> </span><span class="kw">c</span>(range[<span class="dv">3</span>], range[<span class="dv">4</span>], yseg, deg)</span>
-<span id="cb45-11"><a href="multidimensional-smoothing.html#cb45-11"></a></span>
-<span id="cb45-12"><a href="multidimensional-smoothing.html#cb45-12"></a>  <span class="co"># Compute one-dimensional base</span></span>
-<span id="cb45-13"><a href="multidimensional-smoothing.html#cb45-13"></a>  Bx &lt;-<span class="st"> </span><span class="kw">bbase</span>(x, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
-<span id="cb45-14"><a href="multidimensional-smoothing.html#cb45-14"></a>  By &lt;-<span class="st"> </span><span class="kw">bbase</span>(y, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
-<span id="cb45-15"><a href="multidimensional-smoothing.html#cb45-15"></a>  nx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
-<span id="cb45-16"><a href="multidimensional-smoothing.html#cb45-16"></a>  ny =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
-<span id="cb45-17"><a href="multidimensional-smoothing.html#cb45-17"></a></span>
-<span id="cb45-18"><a href="multidimensional-smoothing.html#cb45-18"></a>  <span class="co"># Compute tensor products</span></span>
-<span id="cb45-19"><a href="multidimensional-smoothing.html#cb45-19"></a>  B1 =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, ny)), Bx)</span>
-<span id="cb45-20"><a href="multidimensional-smoothing.html#cb45-20"></a>  B2 =<span class="st"> </span><span class="kw">kronecker</span>(By, <span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, nx)))</span>
-<span id="cb45-21"><a href="multidimensional-smoothing.html#cb45-21"></a>  B =<span class="st"> </span>B1 <span class="op">*</span><span class="st"> </span>B2</span>
-<span id="cb45-22"><a href="multidimensional-smoothing.html#cb45-22"></a>  n =<span class="st"> </span><span class="kw">ncol</span>(B)</span>
-<span id="cb45-23"><a href="multidimensional-smoothing.html#cb45-23"></a></span>
-<span id="cb45-24"><a href="multidimensional-smoothing.html#cb45-24"></a>  <span class="co"># Compute penalty matrices</span></span>
-<span id="cb45-25"><a href="multidimensional-smoothing.html#cb45-25"></a>  Dx =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nx), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
-<span id="cb45-26"><a href="multidimensional-smoothing.html#cb45-26"></a>  Dy =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(ny), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
-<span id="cb45-27"><a href="multidimensional-smoothing.html#cb45-27"></a>  delta =<span class="st"> </span><span class="fl">1e-10</span></span>
-<span id="cb45-28"><a href="multidimensional-smoothing.html#cb45-28"></a>  Px =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(ny), <span class="kw">t</span>(Dx) <span class="op">%*%</span><span class="st"> </span>Dx <span class="op">+</span><span class="st"> </span>delta <span class="op">*</span><span class="st"> </span><span class="kw">diag</span>(nx))</span>
-<span id="cb45-29"><a href="multidimensional-smoothing.html#cb45-29"></a>  Py =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(Dy) <span class="op">%*%</span><span class="st"> </span>Dy <span class="op">+</span><span class="st"> </span>delta <span class="op">*</span><span class="st"> </span><span class="kw">diag</span>(ny), <span class="kw">diag</span>(nx))</span>
-<span id="cb45-30"><a href="multidimensional-smoothing.html#cb45-30"></a>  E =<span class="st"> </span><span class="kw">diag</span>(n)</span>
-<span id="cb45-31"><a href="multidimensional-smoothing.html#cb45-31"></a></span>
-<span id="cb45-32"><a href="multidimensional-smoothing.html#cb45-32"></a>  <span class="co"># Fit the model</span></span>
-<span id="cb45-33"><a href="multidimensional-smoothing.html#cb45-33"></a>  lambdax =<span class="st"> </span><span class="dv">1</span></span>
-<span id="cb45-34"><a href="multidimensional-smoothing.html#cb45-34"></a>  lambday =<span class="st"> </span><span class="fl">0.1</span></span>
-<span id="cb45-35"><a href="multidimensional-smoothing.html#cb45-35"></a>  a =<span class="st"> </span><span class="kw">solve</span>(<span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B <span class="op">+</span><span class="st"> </span>lambdax <span class="op">*</span><span class="st"> </span>Px <span class="op">+</span><span class="st"> </span>lambday <span class="op">*</span><span class="st"> </span>Py, <span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>z)</span>
-<span id="cb45-36"><a href="multidimensional-smoothing.html#cb45-36"></a>  zhat =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
-<span id="cb45-37"><a href="multidimensional-smoothing.html#cb45-37"></a>  r =<span class="st"> </span>z <span class="op">-</span><span class="st"> </span>zhat</span>
-<span id="cb45-38"><a href="multidimensional-smoothing.html#cb45-38"></a>  <span class="kw">cat</span>(<span class="st">&quot;SD of residuals:&quot;</span>, <span class="kw">sd</span>(r), <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb45-39"><a href="multidimensional-smoothing.html#cb45-39"></a></span>
-<span id="cb45-40"><a href="multidimensional-smoothing.html#cb45-40"></a>  <span class="co"># Compute grid for predicted surface</span></span>
-<span id="cb45-41"><a href="multidimensional-smoothing.html#cb45-41"></a>  Bgx &lt;-<span class="st"> </span><span class="kw">bbase</span>(u, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
-<span id="cb45-42"><a href="multidimensional-smoothing.html#cb45-42"></a>  Bgy &lt;-<span class="st"> </span><span class="kw">bbase</span>(v, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
-<span id="cb45-43"><a href="multidimensional-smoothing.html#cb45-43"></a>  A &lt;-<span class="st"> </span><span class="kw">matrix</span>(a, nx, ny)</span>
-<span id="cb45-44"><a href="multidimensional-smoothing.html#cb45-44"></a>  Fit &lt;-<span class="st"> </span>Bgx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(Bgy)</span>
-<span id="cb45-45"><a href="multidimensional-smoothing.html#cb45-45"></a></span>
-<span id="cb45-46"><a href="multidimensional-smoothing.html#cb45-46"></a>  <span class="cf">if</span> (plot) {</span>
-<span id="cb45-47"><a href="multidimensional-smoothing.html#cb45-47"></a>    <span class="co"># Plot result and data</span></span>
-<span id="cb45-48"><a href="multidimensional-smoothing.html#cb45-48"></a>    cols &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;red&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
-<span id="cb45-49"><a href="multidimensional-smoothing.html#cb45-49"></a>    pchs &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;+&quot;</span>, <span class="st">&quot;-&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
-<span id="cb45-50"><a href="multidimensional-smoothing.html#cb45-50"></a>    </span>
-<span id="cb45-51"><a href="multidimensional-smoothing.html#cb45-51"></a>    <span class="kw">image.plot</span>(u, v, Fit,</span>
-<span id="cb45-52"><a href="multidimensional-smoothing.html#cb45-52"></a>      <span class="dt">col =</span> <span class="kw">terrain.colors</span>(<span class="dv">100</span>) </span>
-<span id="cb45-53"><a href="multidimensional-smoothing.html#cb45-53"></a>      <span class="co"># xlab = &quot;Compression ratio&quot;,</span></span>
-<span id="cb45-54"><a href="multidimensional-smoothing.html#cb45-54"></a>      <span class="co"># ylab = &quot;Equivalence ratio&quot;</span></span>
-<span id="cb45-55"><a href="multidimensional-smoothing.html#cb45-55"></a>    )</span>
-<span id="cb45-56"><a href="multidimensional-smoothing.html#cb45-56"></a>    <span class="kw">contour</span>(u, v, Fit, <span class="dt">add =</span> T, <span class="dt">col =</span> <span class="st">&quot;steelblue&quot;</span>, <span class="dt">labcex =</span> <span class="fl">0.7</span>)</span>
-<span id="cb45-57"><a href="multidimensional-smoothing.html#cb45-57"></a>    <span class="kw">points</span>(x, y, <span class="dt">pch =</span> pchs, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">cex =</span> <span class="fl">1.1</span>, )</span>
-<span id="cb45-58"><a href="multidimensional-smoothing.html#cb45-58"></a>    <span class="co"># title(&quot;2D P-splines for NOx emission, ethanol data&quot;, cex.main = 1)</span></span>
-<span id="cb45-59"><a href="multidimensional-smoothing.html#cb45-59"></a>  }</span>
-<span id="cb45-60"><a href="multidimensional-smoothing.html#cb45-60"></a>  <span class="kw">listk</span>(u, v, Fit)</span>
-<span id="cb45-61"><a href="multidimensional-smoothing.html#cb45-61"></a>}</span></code></pre></div>
-<div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="multidimensional-smoothing.html#cb46-1"></a><span class="co"># Get the data</span></span>
-<span id="cb46-2"><a href="multidimensional-smoothing.html#cb46-2"></a><span class="kw">data</span>(ethanol)</span>
-<span id="cb46-3"><a href="multidimensional-smoothing.html#cb46-3"></a><span class="kw">str</span>(ethanol)</span></code></pre></div>
+<div class="sourceCode" id="cb47"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb47-1"><a href="multidimensional-smoothing.html#cb47-1"></a>func &lt;-<span class="st"> </span><span class="cf">function</span>(x, y, range, </span>
+<span id="cb47-2"><a href="multidimensional-smoothing.html#cb47-2"></a>  <span class="dt">yseg =</span> <span class="dv">10</span>, <span class="dt">xseg =</span> <span class="dv">10</span>, <span class="dt">deg =</span> <span class="dv">3</span>, </span>
+<span id="cb47-3"><a href="multidimensional-smoothing.html#cb47-3"></a>  <span class="dt">u =</span> <span class="ot">NULL</span>, <span class="dt">v =</span> <span class="ot">NULL</span>, </span>
+<span id="cb47-4"><a href="multidimensional-smoothing.html#cb47-4"></a>  <span class="dt">lambda =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>), <span class="dt">plot =</span> <span class="ot">TRUE</span>, ...) {</span>
+<span id="cb47-5"><a href="multidimensional-smoothing.html#cb47-5"></a></span>
+<span id="cb47-6"><a href="multidimensional-smoothing.html#cb47-6"></a>  <span class="cf">if</span> (<span class="kw">is.null</span>(u)) u &lt;-<span class="st"> </span><span class="kw">seq</span>(range[<span class="dv">1</span>], range[<span class="dv">2</span>], <span class="dt">length =</span> <span class="kw">length</span>(x))</span>
+<span id="cb47-7"><a href="multidimensional-smoothing.html#cb47-7"></a>  <span class="cf">if</span> (<span class="kw">is.null</span>(v)) v &lt;-<span class="st"> </span><span class="kw">seq</span>(range[<span class="dv">3</span>], range[<span class="dv">4</span>], <span class="dt">length =</span> <span class="kw">length</span>(y))</span>
+<span id="cb47-8"><a href="multidimensional-smoothing.html#cb47-8"></a></span>
+<span id="cb47-9"><a href="multidimensional-smoothing.html#cb47-9"></a>  xpars &lt;-<span class="st"> </span><span class="kw">c</span>(range[<span class="dv">1</span>], range[<span class="dv">2</span>], xseg, deg)</span>
+<span id="cb47-10"><a href="multidimensional-smoothing.html#cb47-10"></a>  ypars &lt;-<span class="st"> </span><span class="kw">c</span>(range[<span class="dv">3</span>], range[<span class="dv">4</span>], yseg, deg)</span>
+<span id="cb47-11"><a href="multidimensional-smoothing.html#cb47-11"></a></span>
+<span id="cb47-12"><a href="multidimensional-smoothing.html#cb47-12"></a>  <span class="co"># Compute one-dimensional base</span></span>
+<span id="cb47-13"><a href="multidimensional-smoothing.html#cb47-13"></a>  Bx &lt;-<span class="st"> </span><span class="kw">bbase</span>(x, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
+<span id="cb47-14"><a href="multidimensional-smoothing.html#cb47-14"></a>  By &lt;-<span class="st"> </span><span class="kw">bbase</span>(y, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
+<span id="cb47-15"><a href="multidimensional-smoothing.html#cb47-15"></a>  nx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
+<span id="cb47-16"><a href="multidimensional-smoothing.html#cb47-16"></a>  ny =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
+<span id="cb47-17"><a href="multidimensional-smoothing.html#cb47-17"></a></span>
+<span id="cb47-18"><a href="multidimensional-smoothing.html#cb47-18"></a>  <span class="co"># Compute tensor products</span></span>
+<span id="cb47-19"><a href="multidimensional-smoothing.html#cb47-19"></a>  B1 =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, ny)), Bx)</span>
+<span id="cb47-20"><a href="multidimensional-smoothing.html#cb47-20"></a>  B2 =<span class="st"> </span><span class="kw">kronecker</span>(By, <span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, nx)))</span>
+<span id="cb47-21"><a href="multidimensional-smoothing.html#cb47-21"></a>  B =<span class="st"> </span>B1 <span class="op">*</span><span class="st"> </span>B2</span>
+<span id="cb47-22"><a href="multidimensional-smoothing.html#cb47-22"></a>  n =<span class="st"> </span><span class="kw">ncol</span>(B)</span>
+<span id="cb47-23"><a href="multidimensional-smoothing.html#cb47-23"></a></span>
+<span id="cb47-24"><a href="multidimensional-smoothing.html#cb47-24"></a>  <span class="co"># Compute penalty matrices</span></span>
+<span id="cb47-25"><a href="multidimensional-smoothing.html#cb47-25"></a>  Dx =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nx), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
+<span id="cb47-26"><a href="multidimensional-smoothing.html#cb47-26"></a>  Dy =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(ny), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
+<span id="cb47-27"><a href="multidimensional-smoothing.html#cb47-27"></a>  delta =<span class="st"> </span><span class="fl">1e-10</span></span>
+<span id="cb47-28"><a href="multidimensional-smoothing.html#cb47-28"></a>  Px =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(ny), <span class="kw">t</span>(Dx) <span class="op">%*%</span><span class="st"> </span>Dx <span class="op">+</span><span class="st"> </span>delta <span class="op">*</span><span class="st"> </span><span class="kw">diag</span>(nx))</span>
+<span id="cb47-29"><a href="multidimensional-smoothing.html#cb47-29"></a>  Py =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(Dy) <span class="op">%*%</span><span class="st"> </span>Dy <span class="op">+</span><span class="st"> </span>delta <span class="op">*</span><span class="st"> </span><span class="kw">diag</span>(ny), <span class="kw">diag</span>(nx))</span>
+<span id="cb47-30"><a href="multidimensional-smoothing.html#cb47-30"></a>  E =<span class="st"> </span><span class="kw">diag</span>(n)</span>
+<span id="cb47-31"><a href="multidimensional-smoothing.html#cb47-31"></a></span>
+<span id="cb47-32"><a href="multidimensional-smoothing.html#cb47-32"></a>  <span class="co"># Fit the model</span></span>
+<span id="cb47-33"><a href="multidimensional-smoothing.html#cb47-33"></a>  lambdax =<span class="st"> </span><span class="dv">1</span></span>
+<span id="cb47-34"><a href="multidimensional-smoothing.html#cb47-34"></a>  lambday =<span class="st"> </span><span class="fl">0.1</span></span>
+<span id="cb47-35"><a href="multidimensional-smoothing.html#cb47-35"></a>  a =<span class="st"> </span><span class="kw">solve</span>(<span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B <span class="op">+</span><span class="st"> </span>lambdax <span class="op">*</span><span class="st"> </span>Px <span class="op">+</span><span class="st"> </span>lambday <span class="op">*</span><span class="st"> </span>Py, <span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>z)</span>
+<span id="cb47-36"><a href="multidimensional-smoothing.html#cb47-36"></a>  zhat =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
+<span id="cb47-37"><a href="multidimensional-smoothing.html#cb47-37"></a>  r =<span class="st"> </span>z <span class="op">-</span><span class="st"> </span>zhat</span>
+<span id="cb47-38"><a href="multidimensional-smoothing.html#cb47-38"></a>  <span class="kw">cat</span>(<span class="st">&quot;SD of residuals:&quot;</span>, <span class="kw">sd</span>(r), <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb47-39"><a href="multidimensional-smoothing.html#cb47-39"></a></span>
+<span id="cb47-40"><a href="multidimensional-smoothing.html#cb47-40"></a>  <span class="co"># Compute grid for predicted surface</span></span>
+<span id="cb47-41"><a href="multidimensional-smoothing.html#cb47-41"></a>  Bgx &lt;-<span class="st"> </span><span class="kw">bbase</span>(u, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
+<span id="cb47-42"><a href="multidimensional-smoothing.html#cb47-42"></a>  Bgy &lt;-<span class="st"> </span><span class="kw">bbase</span>(v, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
+<span id="cb47-43"><a href="multidimensional-smoothing.html#cb47-43"></a>  A &lt;-<span class="st"> </span><span class="kw">matrix</span>(a, nx, ny)</span>
+<span id="cb47-44"><a href="multidimensional-smoothing.html#cb47-44"></a>  Fit &lt;-<span class="st"> </span>Bgx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(Bgy)</span>
+<span id="cb47-45"><a href="multidimensional-smoothing.html#cb47-45"></a></span>
+<span id="cb47-46"><a href="multidimensional-smoothing.html#cb47-46"></a>  <span class="cf">if</span> (plot) {</span>
+<span id="cb47-47"><a href="multidimensional-smoothing.html#cb47-47"></a>    <span class="co"># Plot result and data</span></span>
+<span id="cb47-48"><a href="multidimensional-smoothing.html#cb47-48"></a>    cols &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;red&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
+<span id="cb47-49"><a href="multidimensional-smoothing.html#cb47-49"></a>    pchs &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;+&quot;</span>, <span class="st">&quot;-&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
+<span id="cb47-50"><a href="multidimensional-smoothing.html#cb47-50"></a>    </span>
+<span id="cb47-51"><a href="multidimensional-smoothing.html#cb47-51"></a>    <span class="kw">image.plot</span>(u, v, Fit,</span>
+<span id="cb47-52"><a href="multidimensional-smoothing.html#cb47-52"></a>      <span class="dt">col =</span> <span class="kw">terrain.colors</span>(<span class="dv">100</span>) </span>
+<span id="cb47-53"><a href="multidimensional-smoothing.html#cb47-53"></a>      <span class="co"># xlab = &quot;Compression ratio&quot;,</span></span>
+<span id="cb47-54"><a href="multidimensional-smoothing.html#cb47-54"></a>      <span class="co"># ylab = &quot;Equivalence ratio&quot;</span></span>
+<span id="cb47-55"><a href="multidimensional-smoothing.html#cb47-55"></a>    )</span>
+<span id="cb47-56"><a href="multidimensional-smoothing.html#cb47-56"></a>    <span class="kw">contour</span>(u, v, Fit, <span class="dt">add =</span> T, <span class="dt">col =</span> <span class="st">&quot;steelblue&quot;</span>, <span class="dt">labcex =</span> <span class="fl">0.7</span>)</span>
+<span id="cb47-57"><a href="multidimensional-smoothing.html#cb47-57"></a>    <span class="kw">points</span>(x, y, <span class="dt">pch =</span> pchs, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">cex =</span> <span class="fl">1.1</span>, )</span>
+<span id="cb47-58"><a href="multidimensional-smoothing.html#cb47-58"></a>    <span class="co"># title(&quot;2D P-splines for NOx emission, ethanol data&quot;, cex.main = 1)</span></span>
+<span id="cb47-59"><a href="multidimensional-smoothing.html#cb47-59"></a>  }</span>
+<span id="cb47-60"><a href="multidimensional-smoothing.html#cb47-60"></a>  <span class="kw">listk</span>(u, v, Fit)</span>
+<span id="cb47-61"><a href="multidimensional-smoothing.html#cb47-61"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb48"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb48-1"><a href="multidimensional-smoothing.html#cb48-1"></a><span class="co"># Get the data</span></span>
+<span id="cb48-2"><a href="multidimensional-smoothing.html#cb48-2"></a><span class="kw">data</span>(ethanol)</span>
+<span id="cb48-3"><a href="multidimensional-smoothing.html#cb48-3"></a><span class="kw">str</span>(ethanol)</span></code></pre></div>
 <pre><code>#&gt; &#39;data.frame&#39;:    88 obs. of  3 variables:
 #&gt;  $ NOx: num  3.74 2.29 1.5 2.88 0.76 ...
 #&gt;  $ C  : num  12 12 12 12 12 9 9 9 12 12 ...
 #&gt;  $ E  : num  0.907 0.761 1.108 1.016 1.189 ...</code></pre>
-<div class="sourceCode" id="cb48"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb48-1"><a href="multidimensional-smoothing.html#cb48-1"></a>m &lt;-<span class="st"> </span><span class="kw">nrow</span>(ethanol)</span>
-<span id="cb48-2"><a href="multidimensional-smoothing.html#cb48-2"></a>x &lt;-<span class="st"> </span>ethanol<span class="op">$</span>C</span>
-<span id="cb48-3"><a href="multidimensional-smoothing.html#cb48-3"></a>y &lt;-<span class="st"> </span>ethanol<span class="op">$</span>E</span>
-<span id="cb48-4"><a href="multidimensional-smoothing.html#cb48-4"></a>z &lt;-<span class="st"> </span>ethanol<span class="op">$</span>NOx</span>
-<span id="cb48-5"><a href="multidimensional-smoothing.html#cb48-5"></a></span>
-<span id="cb48-6"><a href="multidimensional-smoothing.html#cb48-6"></a>range &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">7</span>, <span class="dv">19</span>, <span class="fl">0.5</span>, <span class="fl">1.25</span>)</span>
-<span id="cb48-7"><a href="multidimensional-smoothing.html#cb48-7"></a>r &lt;-<span class="st"> </span><span class="kw">func</span>(x, y, range)</span></code></pre></div>
+<div class="sourceCode" id="cb50"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb50-1"><a href="multidimensional-smoothing.html#cb50-1"></a>m &lt;-<span class="st"> </span><span class="kw">nrow</span>(ethanol)</span>
+<span id="cb50-2"><a href="multidimensional-smoothing.html#cb50-2"></a>x &lt;-<span class="st"> </span>ethanol<span class="op">$</span>C</span>
+<span id="cb50-3"><a href="multidimensional-smoothing.html#cb50-3"></a>y &lt;-<span class="st"> </span>ethanol<span class="op">$</span>E</span>
+<span id="cb50-4"><a href="multidimensional-smoothing.html#cb50-4"></a>z &lt;-<span class="st"> </span>ethanol<span class="op">$</span>NOx</span>
+<span id="cb50-5"><a href="multidimensional-smoothing.html#cb50-5"></a></span>
+<span id="cb50-6"><a href="multidimensional-smoothing.html#cb50-6"></a>range &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">7</span>, <span class="dv">19</span>, <span class="fl">0.5</span>, <span class="fl">1.25</span>)</span>
+<span id="cb50-7"><a href="multidimensional-smoothing.html#cb50-7"></a>r &lt;-<span class="st"> </span><span class="kw">func</span>(x, y, range)</span></code></pre></div>
 <pre><code>#&gt; SD of residuals: 0.1683194</code></pre>
 <p><img src="_main_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
 
 </div>
 <div id="figure-4.9" class="section level2 hasAnchor">
 <h2><span class="header-section-number">4.4</span> Figure 4.9<a href="multidimensional-smoothing.html#figure-4.9" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<div class="sourceCode" id="cb50"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb50-1"><a href="multidimensional-smoothing.html#cb50-1"></a><span class="co"># Tensor product P-spline fit and extrapolation (Ethanol data)</span></span>
-<span id="cb50-2"><a href="multidimensional-smoothing.html#cb50-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
-<span id="cb50-3"><a href="multidimensional-smoothing.html#cb50-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
-<span id="cb50-4"><a href="multidimensional-smoothing.html#cb50-4"></a><span class="kw">library</span>(SemiPar)</span>
-<span id="cb50-5"><a href="multidimensional-smoothing.html#cb50-5"></a><span class="kw">library</span>(fields)</span>
-<span id="cb50-6"><a href="multidimensional-smoothing.html#cb50-6"></a><span class="kw">library</span>(JOPS)</span></code></pre></div>
-<div class="sourceCode" id="cb51"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb51-1"><a href="multidimensional-smoothing.html#cb51-1"></a><span class="co"># simulate data</span></span>
-<span id="cb51-2"><a href="multidimensional-smoothing.html#cb51-2"></a>m =<span class="st"> </span><span class="dv">200</span></span>
-<span id="cb51-3"><a href="multidimensional-smoothing.html#cb51-3"></a><span class="kw">set.seed</span>(<span class="dv">2017</span>)</span>
-<span id="cb51-4"><a href="multidimensional-smoothing.html#cb51-4"></a>x =<span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>(<span class="kw">runif</span>(m) <span class="op">-</span><span class="st"> </span><span class="fl">0.5</span>)</span>
-<span id="cb51-5"><a href="multidimensional-smoothing.html#cb51-5"></a>y =<span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>(<span class="kw">runif</span>(m) <span class="op">-</span><span class="st"> </span><span class="fl">0.5</span>)</span>
-<span id="cb51-6"><a href="multidimensional-smoothing.html#cb51-6"></a>z =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span>x<span class="op">^</span><span class="dv">2</span> <span class="op">-</span><span class="st"> </span>y<span class="op">^</span><span class="dv">2</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(m) <span class="op">*</span><span class="st"> </span><span class="fl">0.1</span></span>
-<span id="cb51-7"><a href="multidimensional-smoothing.html#cb51-7"></a>sel =<span class="st"> </span>x <span class="op">&gt;</span><span class="st"> </span><span class="dv">-0</span> <span class="op">|</span><span class="st"> </span>y <span class="op">&gt;</span><span class="st"> </span><span class="dv">-0</span></span>
-<span id="cb51-8"><a href="multidimensional-smoothing.html#cb51-8"></a>m =<span class="st"> </span><span class="kw">length</span>(x)</span>
-<span id="cb51-9"><a href="multidimensional-smoothing.html#cb51-9"></a></span>
-<span id="cb51-10"><a href="multidimensional-smoothing.html#cb51-10"></a><span class="co"># Set parameters for domain</span></span>
-<span id="cb51-11"><a href="multidimensional-smoothing.html#cb51-11"></a>xlo &lt;-<span class="st"> </span><span class="dv">-1</span></span>
-<span id="cb51-12"><a href="multidimensional-smoothing.html#cb51-12"></a>xhi &lt;-<span class="st"> </span><span class="dv">1</span></span>
-<span id="cb51-13"><a href="multidimensional-smoothing.html#cb51-13"></a>ylo &lt;-<span class="st"> </span><span class="dv">-1</span></span>
-<span id="cb51-14"><a href="multidimensional-smoothing.html#cb51-14"></a>yhi &lt;-<span class="st"> </span><span class="dv">1</span></span>
-<span id="cb51-15"><a href="multidimensional-smoothing.html#cb51-15"></a></span>
-<span id="cb51-16"><a href="multidimensional-smoothing.html#cb51-16"></a><span class="co"># Set P-spline parameters, fit and compute surface</span></span>
-<span id="cb51-17"><a href="multidimensional-smoothing.html#cb51-17"></a>xseg &lt;-<span class="st"> </span><span class="dv">10</span></span>
-<span id="cb51-18"><a href="multidimensional-smoothing.html#cb51-18"></a>xdeg &lt;-<span class="st"> </span><span class="dv">3</span></span>
-<span id="cb51-19"><a href="multidimensional-smoothing.html#cb51-19"></a>xpars &lt;-<span class="st"> </span><span class="kw">c</span>(xlo, xhi, xseg, xdeg)</span>
-<span id="cb51-20"><a href="multidimensional-smoothing.html#cb51-20"></a>yseg &lt;-<span class="st"> </span><span class="dv">20</span></span>
-<span id="cb51-21"><a href="multidimensional-smoothing.html#cb51-21"></a>ydeg &lt;-<span class="st"> </span><span class="dv">3</span></span>
-<span id="cb51-22"><a href="multidimensional-smoothing.html#cb51-22"></a>ypars &lt;-<span class="st"> </span><span class="kw">c</span>(ylo, yhi, yseg, ydeg)</span>
-<span id="cb51-23"><a href="multidimensional-smoothing.html#cb51-23"></a></span>
-<span id="cb51-24"><a href="multidimensional-smoothing.html#cb51-24"></a><span class="co"># Compute basis</span></span>
-<span id="cb51-25"><a href="multidimensional-smoothing.html#cb51-25"></a>Bx =<span class="st"> </span><span class="kw">bbase</span>(x, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
-<span id="cb51-26"><a href="multidimensional-smoothing.html#cb51-26"></a>By =<span class="st"> </span><span class="kw">bbase</span>(y, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
-<span id="cb51-27"><a href="multidimensional-smoothing.html#cb51-27"></a>nx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
-<span id="cb51-28"><a href="multidimensional-smoothing.html#cb51-28"></a>ny =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
-<span id="cb51-29"><a href="multidimensional-smoothing.html#cb51-29"></a></span>
-<span id="cb51-30"><a href="multidimensional-smoothing.html#cb51-30"></a><span class="co"># Compute tensor products</span></span>
-<span id="cb51-31"><a href="multidimensional-smoothing.html#cb51-31"></a>B1 &lt;-<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, ny)), Bx)</span>
-<span id="cb51-32"><a href="multidimensional-smoothing.html#cb51-32"></a>B2 &lt;-<span class="st"> </span><span class="kw">kronecker</span>(By, <span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, nx)))</span>
-<span id="cb51-33"><a href="multidimensional-smoothing.html#cb51-33"></a>B &lt;-<span class="st"> </span>B1 <span class="op">*</span><span class="st"> </span>B2</span>
-<span id="cb51-34"><a href="multidimensional-smoothing.html#cb51-34"></a></span>
-<span id="cb51-35"><a href="multidimensional-smoothing.html#cb51-35"></a><span class="co"># B = as.spam(B * (abs(B) &gt; 1e-5))</span></span>
-<span id="cb51-36"><a href="multidimensional-smoothing.html#cb51-36"></a>n =<span class="st"> </span><span class="kw">ncol</span>(B)</span>
-<span id="cb51-37"><a href="multidimensional-smoothing.html#cb51-37"></a>BtB =<span class="st"> </span><span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B</span>
-<span id="cb51-38"><a href="multidimensional-smoothing.html#cb51-38"></a>Btz =<span class="st"> </span><span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>z</span>
-<span id="cb51-39"><a href="multidimensional-smoothing.html#cb51-39"></a></span>
-<span id="cb51-40"><a href="multidimensional-smoothing.html#cb51-40"></a><span class="co"># Compute penalty matrices</span></span>
-<span id="cb51-41"><a href="multidimensional-smoothing.html#cb51-41"></a>Dx =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nx), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
-<span id="cb51-42"><a href="multidimensional-smoothing.html#cb51-42"></a>Dy =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(ny), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
-<span id="cb51-43"><a href="multidimensional-smoothing.html#cb51-43"></a>delta =<span class="st"> </span><span class="fl">1e-10</span></span>
-<span id="cb51-44"><a href="multidimensional-smoothing.html#cb51-44"></a>Px =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(ny), <span class="kw">t</span>(Dx) <span class="op">%*%</span><span class="st"> </span>Dx)</span>
-<span id="cb51-45"><a href="multidimensional-smoothing.html#cb51-45"></a>Py =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(Dy) <span class="op">%*%</span><span class="st"> </span>Dy, <span class="kw">diag</span>(nx))</span>
-<span id="cb51-46"><a href="multidimensional-smoothing.html#cb51-46"></a>E =<span class="st"> </span><span class="kw">diag</span>(n)</span>
-<span id="cb51-47"><a href="multidimensional-smoothing.html#cb51-47"></a></span>
-<span id="cb51-48"><a href="multidimensional-smoothing.html#cb51-48"></a>lambda1 =<span class="st"> </span>lambda2 =<span class="st"> </span><span class="dv">1</span></span>
-<span id="cb51-49"><a href="multidimensional-smoothing.html#cb51-49"></a>a =<span class="st"> </span><span class="kw">solve</span>(BtB <span class="op">+</span><span class="st"> </span>lambda1 <span class="op">*</span><span class="st"> </span>Px <span class="op">+</span><span class="st"> </span>lambda2 <span class="op">*</span><span class="st"> </span>Py, Btz)</span>
-<span id="cb51-50"><a href="multidimensional-smoothing.html#cb51-50"></a>zhat =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
-<span id="cb51-51"><a href="multidimensional-smoothing.html#cb51-51"></a></span>
-<span id="cb51-52"><a href="multidimensional-smoothing.html#cb51-52"></a><span class="co"># Compute grid for predicted surface</span></span>
-<span id="cb51-53"><a href="multidimensional-smoothing.html#cb51-53"></a>nu &lt;-<span class="st"> </span><span class="dv">50</span></span>
-<span id="cb51-54"><a href="multidimensional-smoothing.html#cb51-54"></a>nv &lt;-<span class="st"> </span><span class="dv">50</span></span>
-<span id="cb51-55"><a href="multidimensional-smoothing.html#cb51-55"></a>u &lt;-<span class="st"> </span><span class="kw">seq</span>(xlo, xhi, <span class="dt">length =</span> nu)</span>
-<span id="cb51-56"><a href="multidimensional-smoothing.html#cb51-56"></a>v &lt;-<span class="st"> </span><span class="kw">seq</span>(ylo, yhi, <span class="dt">length =</span> nv)</span>
-<span id="cb51-57"><a href="multidimensional-smoothing.html#cb51-57"></a>Bgx =<span class="st"> </span><span class="kw">bbase</span>(u, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
-<span id="cb51-58"><a href="multidimensional-smoothing.html#cb51-58"></a>Bgy =<span class="st"> </span><span class="kw">bbase</span>(v, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
-<span id="cb51-59"><a href="multidimensional-smoothing.html#cb51-59"></a>A =<span class="st"> </span><span class="kw">matrix</span>(a, nx, ny)</span>
-<span id="cb51-60"><a href="multidimensional-smoothing.html#cb51-60"></a>Fit =<span class="st"> </span>Bgx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(Bgy)</span>
-<span id="cb51-61"><a href="multidimensional-smoothing.html#cb51-61"></a></span>
-<span id="cb51-62"><a href="multidimensional-smoothing.html#cb51-62"></a><span class="kw">par</span>(<span class="dt">mfcol =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="dt">mar =</span> <span class="kw">c</span>(<span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">1</span>), <span class="dt">mgp =</span> <span class="kw">c</span>(<span class="fl">1.6</span>, <span class="fl">0.8</span>, <span class="dv">0</span>))</span>
-<span id="cb51-63"><a href="multidimensional-smoothing.html#cb51-63"></a><span class="co"># Plot result and data</span></span>
-<span id="cb51-64"><a href="multidimensional-smoothing.html#cb51-64"></a>cols =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;red&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
-<span id="cb51-65"><a href="multidimensional-smoothing.html#cb51-65"></a>pchs =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;+&quot;</span>, <span class="st">&quot;-&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
-<span id="cb51-66"><a href="multidimensional-smoothing.html#cb51-66"></a><span class="kw">image.plot</span>(u, v, Fit, <span class="dt">col =</span> <span class="kw">terrain.colors</span>(<span class="dv">100</span>), <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>,</span>
-<span id="cb51-67"><a href="multidimensional-smoothing.html#cb51-67"></a>    <span class="dt">horizontal =</span> T, <span class="dt">legend.width =</span> <span class="fl">0.7</span>, <span class="dt">cex =</span> <span class="fl">0.8</span>, <span class="dt">legend.cex =</span> <span class="fl">0.7</span>,</span>
-<span id="cb51-68"><a href="multidimensional-smoothing.html#cb51-68"></a>    <span class="dt">cex.axis =</span> <span class="fl">0.8</span>)</span>
-<span id="cb51-69"><a href="multidimensional-smoothing.html#cb51-69"></a><span class="kw">contour</span>(u, v, Fit, <span class="dt">add =</span> T, <span class="dt">col =</span> <span class="st">&quot;steelblue&quot;</span>)</span>
-<span id="cb51-70"><a href="multidimensional-smoothing.html#cb51-70"></a><span class="kw">points</span>(x, y, <span class="dt">pch =</span> pchs, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">cex =</span> <span class="fl">1.1</span>)</span>
-<span id="cb51-71"><a href="multidimensional-smoothing.html#cb51-71"></a></span>
-<span id="cb51-72"><a href="multidimensional-smoothing.html#cb51-72"></a>x =<span class="st"> </span>x[sel]</span>
-<span id="cb51-73"><a href="multidimensional-smoothing.html#cb51-73"></a>y =<span class="st"> </span>y[sel]</span>
-<span id="cb51-74"><a href="multidimensional-smoothing.html#cb51-74"></a>z =<span class="st"> </span>z[sel]</span>
-<span id="cb51-75"><a href="multidimensional-smoothing.html#cb51-75"></a>m =<span class="st"> </span><span class="kw">length</span>(x)</span>
-<span id="cb51-76"><a href="multidimensional-smoothing.html#cb51-76"></a></span>
-<span id="cb51-77"><a href="multidimensional-smoothing.html#cb51-77"></a><span class="co"># Compute basis</span></span>
-<span id="cb51-78"><a href="multidimensional-smoothing.html#cb51-78"></a>Bx =<span class="st"> </span><span class="kw">bbase</span>(x, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
-<span id="cb51-79"><a href="multidimensional-smoothing.html#cb51-79"></a>By =<span class="st"> </span><span class="kw">bbase</span>(y, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
-<span id="cb51-80"><a href="multidimensional-smoothing.html#cb51-80"></a>nx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
-<span id="cb51-81"><a href="multidimensional-smoothing.html#cb51-81"></a>ny =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
-<span id="cb51-82"><a href="multidimensional-smoothing.html#cb51-82"></a></span>
-<span id="cb51-83"><a href="multidimensional-smoothing.html#cb51-83"></a><span class="co"># Compute tensor products</span></span>
-<span id="cb51-84"><a href="multidimensional-smoothing.html#cb51-84"></a>B1 &lt;-<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, ny)), Bx)</span>
-<span id="cb51-85"><a href="multidimensional-smoothing.html#cb51-85"></a>B2 &lt;-<span class="st"> </span><span class="kw">kronecker</span>(By, <span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, nx)))</span>
-<span id="cb51-86"><a href="multidimensional-smoothing.html#cb51-86"></a>B &lt;-<span class="st"> </span>B1 <span class="op">*</span><span class="st"> </span>B2</span>
-<span id="cb51-87"><a href="multidimensional-smoothing.html#cb51-87"></a></span>
-<span id="cb51-88"><a href="multidimensional-smoothing.html#cb51-88"></a><span class="co"># B = as.spam(B * (abs(B) &gt; 1e-5))</span></span>
-<span id="cb51-89"><a href="multidimensional-smoothing.html#cb51-89"></a>n =<span class="st"> </span><span class="kw">ncol</span>(B)</span>
-<span id="cb51-90"><a href="multidimensional-smoothing.html#cb51-90"></a>BtB =<span class="st"> </span><span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B</span>
-<span id="cb51-91"><a href="multidimensional-smoothing.html#cb51-91"></a>Btz =<span class="st"> </span><span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>z</span>
-<span id="cb51-92"><a href="multidimensional-smoothing.html#cb51-92"></a></span>
-<span id="cb51-93"><a href="multidimensional-smoothing.html#cb51-93"></a>lambda1 =<span class="st"> </span>lambda2 =<span class="st"> </span><span class="dv">3</span></span>
-<span id="cb51-94"><a href="multidimensional-smoothing.html#cb51-94"></a>a =<span class="st"> </span><span class="kw">solve</span>(BtB <span class="op">+</span><span class="st"> </span>lambda1 <span class="op">*</span><span class="st"> </span>Px <span class="op">+</span><span class="st"> </span>lambda2 <span class="op">*</span><span class="st"> </span>Py, Btz)</span>
-<span id="cb51-95"><a href="multidimensional-smoothing.html#cb51-95"></a>zhat =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
-<span id="cb51-96"><a href="multidimensional-smoothing.html#cb51-96"></a>A =<span class="st"> </span><span class="kw">matrix</span>(a, nx, ny)</span>
-<span id="cb51-97"><a href="multidimensional-smoothing.html#cb51-97"></a>Fit =<span class="st"> </span>Bgx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(Bgy)</span>
-<span id="cb51-98"><a href="multidimensional-smoothing.html#cb51-98"></a></span>
-<span id="cb51-99"><a href="multidimensional-smoothing.html#cb51-99"></a><span class="co"># Plot result and data</span></span>
-<span id="cb51-100"><a href="multidimensional-smoothing.html#cb51-100"></a>cols =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;red&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
-<span id="cb51-101"><a href="multidimensional-smoothing.html#cb51-101"></a>pchs =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;+&quot;</span>, <span class="st">&quot;-&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
-<span id="cb51-102"><a href="multidimensional-smoothing.html#cb51-102"></a><span class="kw">image.plot</span>(u, v, Fit, <span class="dt">col =</span> <span class="kw">terrain.colors</span>(<span class="dv">100</span>), <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>,</span>
-<span id="cb51-103"><a href="multidimensional-smoothing.html#cb51-103"></a>    <span class="dt">horizontal =</span> T, <span class="dt">legend.width =</span> <span class="fl">0.7</span>)</span>
-<span id="cb51-104"><a href="multidimensional-smoothing.html#cb51-104"></a><span class="kw">contour</span>(u, v, Fit, <span class="dt">add =</span> T, <span class="dt">col =</span> <span class="st">&quot;steelblue&quot;</span>, <span class="dt">labcex =</span> <span class="fl">0.7</span>)</span>
-<span id="cb51-105"><a href="multidimensional-smoothing.html#cb51-105"></a><span class="kw">points</span>(x, y, <span class="dt">pch =</span> pchs, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">cex =</span> <span class="fl">1.1</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb52"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb52-1"><a href="multidimensional-smoothing.html#cb52-1"></a><span class="co"># Tensor product P-spline fit and extrapolation (Ethanol data)</span></span>
+<span id="cb52-2"><a href="multidimensional-smoothing.html#cb52-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
+<span id="cb52-3"><a href="multidimensional-smoothing.html#cb52-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
+<span id="cb52-4"><a href="multidimensional-smoothing.html#cb52-4"></a><span class="kw">library</span>(SemiPar)</span>
+<span id="cb52-5"><a href="multidimensional-smoothing.html#cb52-5"></a><span class="kw">library</span>(fields)</span>
+<span id="cb52-6"><a href="multidimensional-smoothing.html#cb52-6"></a><span class="kw">library</span>(JOPS)</span></code></pre></div>
+<div class="sourceCode" id="cb53"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb53-1"><a href="multidimensional-smoothing.html#cb53-1"></a><span class="co"># simulate data</span></span>
+<span id="cb53-2"><a href="multidimensional-smoothing.html#cb53-2"></a>m =<span class="st"> </span><span class="dv">200</span></span>
+<span id="cb53-3"><a href="multidimensional-smoothing.html#cb53-3"></a><span class="kw">set.seed</span>(<span class="dv">2017</span>)</span>
+<span id="cb53-4"><a href="multidimensional-smoothing.html#cb53-4"></a>x =<span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>(<span class="kw">runif</span>(m) <span class="op">-</span><span class="st"> </span><span class="fl">0.5</span>)</span>
+<span id="cb53-5"><a href="multidimensional-smoothing.html#cb53-5"></a>y =<span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>(<span class="kw">runif</span>(m) <span class="op">-</span><span class="st"> </span><span class="fl">0.5</span>)</span>
+<span id="cb53-6"><a href="multidimensional-smoothing.html#cb53-6"></a>z =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span>x<span class="op">^</span><span class="dv">2</span> <span class="op">-</span><span class="st"> </span>y<span class="op">^</span><span class="dv">2</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(m) <span class="op">*</span><span class="st"> </span><span class="fl">0.1</span></span>
+<span id="cb53-7"><a href="multidimensional-smoothing.html#cb53-7"></a>sel =<span class="st"> </span>x <span class="op">&gt;</span><span class="st"> </span><span class="dv">-0</span> <span class="op">|</span><span class="st"> </span>y <span class="op">&gt;</span><span class="st"> </span><span class="dv">-0</span></span>
+<span id="cb53-8"><a href="multidimensional-smoothing.html#cb53-8"></a>m =<span class="st"> </span><span class="kw">length</span>(x)</span>
+<span id="cb53-9"><a href="multidimensional-smoothing.html#cb53-9"></a></span>
+<span id="cb53-10"><a href="multidimensional-smoothing.html#cb53-10"></a><span class="co"># Set parameters for domain</span></span>
+<span id="cb53-11"><a href="multidimensional-smoothing.html#cb53-11"></a>xlo &lt;-<span class="st"> </span><span class="dv">-1</span></span>
+<span id="cb53-12"><a href="multidimensional-smoothing.html#cb53-12"></a>xhi &lt;-<span class="st"> </span><span class="dv">1</span></span>
+<span id="cb53-13"><a href="multidimensional-smoothing.html#cb53-13"></a>ylo &lt;-<span class="st"> </span><span class="dv">-1</span></span>
+<span id="cb53-14"><a href="multidimensional-smoothing.html#cb53-14"></a>yhi &lt;-<span class="st"> </span><span class="dv">1</span></span>
+<span id="cb53-15"><a href="multidimensional-smoothing.html#cb53-15"></a></span>
+<span id="cb53-16"><a href="multidimensional-smoothing.html#cb53-16"></a><span class="co"># Set P-spline parameters, fit and compute surface</span></span>
+<span id="cb53-17"><a href="multidimensional-smoothing.html#cb53-17"></a>xseg &lt;-<span class="st"> </span><span class="dv">10</span></span>
+<span id="cb53-18"><a href="multidimensional-smoothing.html#cb53-18"></a>xdeg &lt;-<span class="st"> </span><span class="dv">3</span></span>
+<span id="cb53-19"><a href="multidimensional-smoothing.html#cb53-19"></a>xpars &lt;-<span class="st"> </span><span class="kw">c</span>(xlo, xhi, xseg, xdeg)</span>
+<span id="cb53-20"><a href="multidimensional-smoothing.html#cb53-20"></a>yseg &lt;-<span class="st"> </span><span class="dv">20</span></span>
+<span id="cb53-21"><a href="multidimensional-smoothing.html#cb53-21"></a>ydeg &lt;-<span class="st"> </span><span class="dv">3</span></span>
+<span id="cb53-22"><a href="multidimensional-smoothing.html#cb53-22"></a>ypars &lt;-<span class="st"> </span><span class="kw">c</span>(ylo, yhi, yseg, ydeg)</span>
+<span id="cb53-23"><a href="multidimensional-smoothing.html#cb53-23"></a></span>
+<span id="cb53-24"><a href="multidimensional-smoothing.html#cb53-24"></a><span class="co"># Compute basis</span></span>
+<span id="cb53-25"><a href="multidimensional-smoothing.html#cb53-25"></a>Bx =<span class="st"> </span><span class="kw">bbase</span>(x, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
+<span id="cb53-26"><a href="multidimensional-smoothing.html#cb53-26"></a>By =<span class="st"> </span><span class="kw">bbase</span>(y, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
+<span id="cb53-27"><a href="multidimensional-smoothing.html#cb53-27"></a>nx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
+<span id="cb53-28"><a href="multidimensional-smoothing.html#cb53-28"></a>ny =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
+<span id="cb53-29"><a href="multidimensional-smoothing.html#cb53-29"></a></span>
+<span id="cb53-30"><a href="multidimensional-smoothing.html#cb53-30"></a><span class="co"># Compute tensor products</span></span>
+<span id="cb53-31"><a href="multidimensional-smoothing.html#cb53-31"></a>B1 &lt;-<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, ny)), Bx)</span>
+<span id="cb53-32"><a href="multidimensional-smoothing.html#cb53-32"></a>B2 &lt;-<span class="st"> </span><span class="kw">kronecker</span>(By, <span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, nx)))</span>
+<span id="cb53-33"><a href="multidimensional-smoothing.html#cb53-33"></a>B &lt;-<span class="st"> </span>B1 <span class="op">*</span><span class="st"> </span>B2</span>
+<span id="cb53-34"><a href="multidimensional-smoothing.html#cb53-34"></a></span>
+<span id="cb53-35"><a href="multidimensional-smoothing.html#cb53-35"></a><span class="co"># B = as.spam(B * (abs(B) &gt; 1e-5))</span></span>
+<span id="cb53-36"><a href="multidimensional-smoothing.html#cb53-36"></a>n =<span class="st"> </span><span class="kw">ncol</span>(B)</span>
+<span id="cb53-37"><a href="multidimensional-smoothing.html#cb53-37"></a>BtB =<span class="st"> </span><span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B</span>
+<span id="cb53-38"><a href="multidimensional-smoothing.html#cb53-38"></a>Btz =<span class="st"> </span><span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>z</span>
+<span id="cb53-39"><a href="multidimensional-smoothing.html#cb53-39"></a></span>
+<span id="cb53-40"><a href="multidimensional-smoothing.html#cb53-40"></a><span class="co"># Compute penalty matrices</span></span>
+<span id="cb53-41"><a href="multidimensional-smoothing.html#cb53-41"></a>Dx =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nx), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
+<span id="cb53-42"><a href="multidimensional-smoothing.html#cb53-42"></a>Dy =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(ny), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
+<span id="cb53-43"><a href="multidimensional-smoothing.html#cb53-43"></a>delta =<span class="st"> </span><span class="fl">1e-10</span></span>
+<span id="cb53-44"><a href="multidimensional-smoothing.html#cb53-44"></a>Px =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(ny), <span class="kw">t</span>(Dx) <span class="op">%*%</span><span class="st"> </span>Dx)</span>
+<span id="cb53-45"><a href="multidimensional-smoothing.html#cb53-45"></a>Py =<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(Dy) <span class="op">%*%</span><span class="st"> </span>Dy, <span class="kw">diag</span>(nx))</span>
+<span id="cb53-46"><a href="multidimensional-smoothing.html#cb53-46"></a>E =<span class="st"> </span><span class="kw">diag</span>(n)</span>
+<span id="cb53-47"><a href="multidimensional-smoothing.html#cb53-47"></a></span>
+<span id="cb53-48"><a href="multidimensional-smoothing.html#cb53-48"></a>lambda1 =<span class="st"> </span>lambda2 =<span class="st"> </span><span class="dv">1</span></span>
+<span id="cb53-49"><a href="multidimensional-smoothing.html#cb53-49"></a>a =<span class="st"> </span><span class="kw">solve</span>(BtB <span class="op">+</span><span class="st"> </span>lambda1 <span class="op">*</span><span class="st"> </span>Px <span class="op">+</span><span class="st"> </span>lambda2 <span class="op">*</span><span class="st"> </span>Py, Btz)</span>
+<span id="cb53-50"><a href="multidimensional-smoothing.html#cb53-50"></a>zhat =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
+<span id="cb53-51"><a href="multidimensional-smoothing.html#cb53-51"></a></span>
+<span id="cb53-52"><a href="multidimensional-smoothing.html#cb53-52"></a><span class="co"># Compute grid for predicted surface</span></span>
+<span id="cb53-53"><a href="multidimensional-smoothing.html#cb53-53"></a>nu &lt;-<span class="st"> </span><span class="dv">50</span></span>
+<span id="cb53-54"><a href="multidimensional-smoothing.html#cb53-54"></a>nv &lt;-<span class="st"> </span><span class="dv">50</span></span>
+<span id="cb53-55"><a href="multidimensional-smoothing.html#cb53-55"></a>u &lt;-<span class="st"> </span><span class="kw">seq</span>(xlo, xhi, <span class="dt">length =</span> nu)</span>
+<span id="cb53-56"><a href="multidimensional-smoothing.html#cb53-56"></a>v &lt;-<span class="st"> </span><span class="kw">seq</span>(ylo, yhi, <span class="dt">length =</span> nv)</span>
+<span id="cb53-57"><a href="multidimensional-smoothing.html#cb53-57"></a>Bgx =<span class="st"> </span><span class="kw">bbase</span>(u, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
+<span id="cb53-58"><a href="multidimensional-smoothing.html#cb53-58"></a>Bgy =<span class="st"> </span><span class="kw">bbase</span>(v, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
+<span id="cb53-59"><a href="multidimensional-smoothing.html#cb53-59"></a>A =<span class="st"> </span><span class="kw">matrix</span>(a, nx, ny)</span>
+<span id="cb53-60"><a href="multidimensional-smoothing.html#cb53-60"></a>Fit =<span class="st"> </span>Bgx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(Bgy)</span>
+<span id="cb53-61"><a href="multidimensional-smoothing.html#cb53-61"></a></span>
+<span id="cb53-62"><a href="multidimensional-smoothing.html#cb53-62"></a><span class="kw">par</span>(<span class="dt">mfcol =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="dt">mar =</span> <span class="kw">c</span>(<span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">1</span>), <span class="dt">mgp =</span> <span class="kw">c</span>(<span class="fl">1.6</span>, <span class="fl">0.8</span>, <span class="dv">0</span>))</span>
+<span id="cb53-63"><a href="multidimensional-smoothing.html#cb53-63"></a><span class="co"># Plot result and data</span></span>
+<span id="cb53-64"><a href="multidimensional-smoothing.html#cb53-64"></a>cols =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;red&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
+<span id="cb53-65"><a href="multidimensional-smoothing.html#cb53-65"></a>pchs =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;+&quot;</span>, <span class="st">&quot;-&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
+<span id="cb53-66"><a href="multidimensional-smoothing.html#cb53-66"></a><span class="kw">image.plot</span>(u, v, Fit, <span class="dt">col =</span> <span class="kw">terrain.colors</span>(<span class="dv">100</span>), <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb53-67"><a href="multidimensional-smoothing.html#cb53-67"></a>    <span class="dt">horizontal =</span> T, <span class="dt">legend.width =</span> <span class="fl">0.7</span>, <span class="dt">cex =</span> <span class="fl">0.8</span>, <span class="dt">legend.cex =</span> <span class="fl">0.7</span>,</span>
+<span id="cb53-68"><a href="multidimensional-smoothing.html#cb53-68"></a>    <span class="dt">cex.axis =</span> <span class="fl">0.8</span>)</span>
+<span id="cb53-69"><a href="multidimensional-smoothing.html#cb53-69"></a><span class="kw">contour</span>(u, v, Fit, <span class="dt">add =</span> T, <span class="dt">col =</span> <span class="st">&quot;steelblue&quot;</span>)</span>
+<span id="cb53-70"><a href="multidimensional-smoothing.html#cb53-70"></a><span class="kw">points</span>(x, y, <span class="dt">pch =</span> pchs, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">cex =</span> <span class="fl">1.1</span>)</span>
+<span id="cb53-71"><a href="multidimensional-smoothing.html#cb53-71"></a></span>
+<span id="cb53-72"><a href="multidimensional-smoothing.html#cb53-72"></a>x =<span class="st"> </span>x[sel]</span>
+<span id="cb53-73"><a href="multidimensional-smoothing.html#cb53-73"></a>y =<span class="st"> </span>y[sel]</span>
+<span id="cb53-74"><a href="multidimensional-smoothing.html#cb53-74"></a>z =<span class="st"> </span>z[sel]</span>
+<span id="cb53-75"><a href="multidimensional-smoothing.html#cb53-75"></a>m =<span class="st"> </span><span class="kw">length</span>(x)</span>
+<span id="cb53-76"><a href="multidimensional-smoothing.html#cb53-76"></a></span>
+<span id="cb53-77"><a href="multidimensional-smoothing.html#cb53-77"></a><span class="co"># Compute basis</span></span>
+<span id="cb53-78"><a href="multidimensional-smoothing.html#cb53-78"></a>Bx =<span class="st"> </span><span class="kw">bbase</span>(x, xpars[<span class="dv">1</span>], xpars[<span class="dv">2</span>], xpars[<span class="dv">3</span>], xpars[<span class="dv">4</span>])</span>
+<span id="cb53-79"><a href="multidimensional-smoothing.html#cb53-79"></a>By =<span class="st"> </span><span class="kw">bbase</span>(y, ypars[<span class="dv">1</span>], ypars[<span class="dv">2</span>], ypars[<span class="dv">3</span>], ypars[<span class="dv">4</span>])</span>
+<span id="cb53-80"><a href="multidimensional-smoothing.html#cb53-80"></a>nx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
+<span id="cb53-81"><a href="multidimensional-smoothing.html#cb53-81"></a>ny =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
+<span id="cb53-82"><a href="multidimensional-smoothing.html#cb53-82"></a></span>
+<span id="cb53-83"><a href="multidimensional-smoothing.html#cb53-83"></a><span class="co"># Compute tensor products</span></span>
+<span id="cb53-84"><a href="multidimensional-smoothing.html#cb53-84"></a>B1 &lt;-<span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, ny)), Bx)</span>
+<span id="cb53-85"><a href="multidimensional-smoothing.html#cb53-85"></a>B2 &lt;-<span class="st"> </span><span class="kw">kronecker</span>(By, <span class="kw">t</span>(<span class="kw">rep</span>(<span class="dv">1</span>, nx)))</span>
+<span id="cb53-86"><a href="multidimensional-smoothing.html#cb53-86"></a>B &lt;-<span class="st"> </span>B1 <span class="op">*</span><span class="st"> </span>B2</span>
+<span id="cb53-87"><a href="multidimensional-smoothing.html#cb53-87"></a></span>
+<span id="cb53-88"><a href="multidimensional-smoothing.html#cb53-88"></a><span class="co"># B = as.spam(B * (abs(B) &gt; 1e-5))</span></span>
+<span id="cb53-89"><a href="multidimensional-smoothing.html#cb53-89"></a>n =<span class="st"> </span><span class="kw">ncol</span>(B)</span>
+<span id="cb53-90"><a href="multidimensional-smoothing.html#cb53-90"></a>BtB =<span class="st"> </span><span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>B</span>
+<span id="cb53-91"><a href="multidimensional-smoothing.html#cb53-91"></a>Btz =<span class="st"> </span><span class="kw">t</span>(B) <span class="op">%*%</span><span class="st"> </span>z</span>
+<span id="cb53-92"><a href="multidimensional-smoothing.html#cb53-92"></a></span>
+<span id="cb53-93"><a href="multidimensional-smoothing.html#cb53-93"></a>lambda1 =<span class="st"> </span>lambda2 =<span class="st"> </span><span class="dv">3</span></span>
+<span id="cb53-94"><a href="multidimensional-smoothing.html#cb53-94"></a>a =<span class="st"> </span><span class="kw">solve</span>(BtB <span class="op">+</span><span class="st"> </span>lambda1 <span class="op">*</span><span class="st"> </span>Px <span class="op">+</span><span class="st"> </span>lambda2 <span class="op">*</span><span class="st"> </span>Py, Btz)</span>
+<span id="cb53-95"><a href="multidimensional-smoothing.html#cb53-95"></a>zhat =<span class="st"> </span>B <span class="op">%*%</span><span class="st"> </span>a</span>
+<span id="cb53-96"><a href="multidimensional-smoothing.html#cb53-96"></a>A =<span class="st"> </span><span class="kw">matrix</span>(a, nx, ny)</span>
+<span id="cb53-97"><a href="multidimensional-smoothing.html#cb53-97"></a>Fit =<span class="st"> </span>Bgx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(Bgy)</span>
+<span id="cb53-98"><a href="multidimensional-smoothing.html#cb53-98"></a></span>
+<span id="cb53-99"><a href="multidimensional-smoothing.html#cb53-99"></a><span class="co"># Plot result and data</span></span>
+<span id="cb53-100"><a href="multidimensional-smoothing.html#cb53-100"></a>cols =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;red&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
+<span id="cb53-101"><a href="multidimensional-smoothing.html#cb53-101"></a>pchs =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;+&quot;</span>, <span class="st">&quot;-&quot;</span>)[(z <span class="op">&gt;</span><span class="st"> </span>zhat) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>]</span>
+<span id="cb53-102"><a href="multidimensional-smoothing.html#cb53-102"></a><span class="kw">image.plot</span>(u, v, Fit, <span class="dt">col =</span> <span class="kw">terrain.colors</span>(<span class="dv">100</span>), <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb53-103"><a href="multidimensional-smoothing.html#cb53-103"></a>    <span class="dt">horizontal =</span> T, <span class="dt">legend.width =</span> <span class="fl">0.7</span>)</span>
+<span id="cb53-104"><a href="multidimensional-smoothing.html#cb53-104"></a><span class="kw">contour</span>(u, v, Fit, <span class="dt">add =</span> T, <span class="dt">col =</span> <span class="st">&quot;steelblue&quot;</span>, <span class="dt">labcex =</span> <span class="fl">0.7</span>)</span>
+<span id="cb53-105"><a href="multidimensional-smoothing.html#cb53-105"></a><span class="kw">points</span>(x, y, <span class="dt">pch =</span> pchs, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">cex =</span> <span class="fl">1.1</span>)</span></code></pre></div>
 <p><img src="_main_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
 
 </div>
 <div id="figure-4.10" class="section level2 hasAnchor">
 <h2><span class="header-section-number">4.5</span> Figure 4.10<a href="multidimensional-smoothing.html#figure-4.10" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<div class="sourceCode" id="cb52"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb52-1"><a href="multidimensional-smoothing.html#cb52-1"></a><span class="co"># Smoothing ring image with array regression (Simulated data)</span></span>
-<span id="cb52-2"><a href="multidimensional-smoothing.html#cb52-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
-<span id="cb52-3"><a href="multidimensional-smoothing.html#cb52-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
-<span id="cb52-4"><a href="multidimensional-smoothing.html#cb52-4"></a><span class="kw">library</span>(ggplot2)</span>
-<span id="cb52-5"><a href="multidimensional-smoothing.html#cb52-5"></a><span class="kw">library</span>(JOPS)</span>
-<span id="cb52-6"><a href="multidimensional-smoothing.html#cb52-6"></a><span class="kw">library</span>(fields)</span>
-<span id="cb52-7"><a href="multidimensional-smoothing.html#cb52-7"></a></span>
-<span id="cb52-8"><a href="multidimensional-smoothing.html#cb52-8"></a><span class="co"># Simulate the rings</span></span>
-<span id="cb52-9"><a href="multidimensional-smoothing.html#cb52-9"></a>nx =<span class="st"> </span><span class="dv">500</span></span>
-<span id="cb52-10"><a href="multidimensional-smoothing.html#cb52-10"></a>ny =<span class="st"> </span><span class="dv">500</span></span>
-<span id="cb52-11"><a href="multidimensional-smoothing.html#cb52-11"></a>x =<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dt">length =</span> nx)</span>
-<span id="cb52-12"><a href="multidimensional-smoothing.html#cb52-12"></a>y =<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dt">length =</span> ny)</span>
-<span id="cb52-13"><a href="multidimensional-smoothing.html#cb52-13"></a>ex =<span class="st"> </span><span class="kw">rep</span>(<span class="dv">1</span>, nx)</span>
-<span id="cb52-14"><a href="multidimensional-smoothing.html#cb52-14"></a>ey =<span class="st"> </span><span class="kw">rep</span>(<span class="dv">1</span>, ny)</span>
-<span id="cb52-15"><a href="multidimensional-smoothing.html#cb52-15"></a>X =<span class="st"> </span><span class="kw">outer</span>(x, ey)</span>
-<span id="cb52-16"><a href="multidimensional-smoothing.html#cb52-16"></a>Y =<span class="st"> </span><span class="kw">outer</span>(ex, y)</span>
-<span id="cb52-17"><a href="multidimensional-smoothing.html#cb52-17"></a>R1 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">-</span><span class="st"> </span><span class="fl">0.3</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">-</span><span class="st"> </span><span class="fl">0.3</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb52-18"><a href="multidimensional-smoothing.html#cb52-18"></a>R2 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb52-19"><a href="multidimensional-smoothing.html#cb52-19"></a>R3 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">-</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">+</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb52-20"><a href="multidimensional-smoothing.html#cb52-20"></a>R4 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">+</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">-</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb52-21"><a href="multidimensional-smoothing.html#cb52-21"></a>Z1 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R1 <span class="op">-</span><span class="st"> </span><span class="fl">0.4</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb52-22"><a href="multidimensional-smoothing.html#cb52-22"></a>Z2 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R2 <span class="op">-</span><span class="st"> </span><span class="fl">0.6</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb52-23"><a href="multidimensional-smoothing.html#cb52-23"></a>Z3 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R3 <span class="op">-</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb52-24"><a href="multidimensional-smoothing.html#cb52-24"></a>Z4 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R4 <span class="op">-</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb52-25"><a href="multidimensional-smoothing.html#cb52-25"></a>Z =<span class="st"> </span><span class="kw">pmax</span>(<span class="kw">pmax</span>(<span class="kw">pmax</span>(Z1, Z2), Z3), Z4)</span>
-<span id="cb52-26"><a href="multidimensional-smoothing.html#cb52-26"></a></span>
-<span id="cb52-27"><a href="multidimensional-smoothing.html#cb52-27"></a><span class="co"># Add noise</span></span>
-<span id="cb52-28"><a href="multidimensional-smoothing.html#cb52-28"></a><span class="kw">set.seed</span>(<span class="dv">2019</span>)</span>
-<span id="cb52-29"><a href="multidimensional-smoothing.html#cb52-29"></a>Z =<span class="st"> </span>Z <span class="op">+</span><span class="st"> </span><span class="kw">matrix</span>(<span class="kw">rnorm</span>(nx <span class="op">*</span><span class="st"> </span>nx), nx, ny)</span>
-<span id="cb52-30"><a href="multidimensional-smoothing.html#cb52-30"></a></span>
-<span id="cb52-31"><a href="multidimensional-smoothing.html#cb52-31"></a><span class="co"># Prepare bases</span></span>
-<span id="cb52-32"><a href="multidimensional-smoothing.html#cb52-32"></a>Bx =<span class="st"> </span><span class="kw">bbase</span>(x, <span class="dt">nseg =</span> <span class="dv">20</span>)</span>
-<span id="cb52-33"><a href="multidimensional-smoothing.html#cb52-33"></a>By =<span class="st"> </span><span class="kw">bbase</span>(y, <span class="dt">nseg =</span> <span class="dv">20</span>)</span>
-<span id="cb52-34"><a href="multidimensional-smoothing.html#cb52-34"></a>nbx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
-<span id="cb52-35"><a href="multidimensional-smoothing.html#cb52-35"></a>nby =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
-<span id="cb52-36"><a href="multidimensional-smoothing.html#cb52-36"></a></span>
-<span id="cb52-37"><a href="multidimensional-smoothing.html#cb52-37"></a><span class="co"># Prpare the penalty matrices</span></span>
-<span id="cb52-38"><a href="multidimensional-smoothing.html#cb52-38"></a>Dx =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nbx), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
-<span id="cb52-39"><a href="multidimensional-smoothing.html#cb52-39"></a>Dy =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nby), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
-<span id="cb52-40"><a href="multidimensional-smoothing.html#cb52-40"></a>lambdax =<span class="st"> </span>lambday =<span class="st"> </span><span class="dv">1</span></span>
-<span id="cb52-41"><a href="multidimensional-smoothing.html#cb52-41"></a>Px =<span class="st"> </span>lambdax <span class="op">*</span><span class="st"> </span><span class="kw">t</span>(Dx) <span class="op">%*%</span><span class="st"> </span>Dx</span>
-<span id="cb52-42"><a href="multidimensional-smoothing.html#cb52-42"></a>Py =<span class="st"> </span>lambday <span class="op">*</span><span class="st"> </span><span class="kw">t</span>(Dy) <span class="op">%*%</span><span class="st"> </span>Dy</span>
-<span id="cb52-43"><a href="multidimensional-smoothing.html#cb52-43"></a>P =<span class="st"> </span><span class="kw">kronecker</span>(Py, <span class="kw">diag</span>(nbx)) <span class="op">+</span><span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(nby), Px)</span>
-<span id="cb52-44"><a href="multidimensional-smoothing.html#cb52-44"></a></span>
-<span id="cb52-45"><a href="multidimensional-smoothing.html#cb52-45"></a><span class="co"># Do the smoothing, using the array algorithm</span></span>
-<span id="cb52-46"><a href="multidimensional-smoothing.html#cb52-46"></a>W =<span class="st"> </span><span class="dv">0</span> <span class="op">*</span><span class="st"> </span>Z <span class="op">+</span><span class="st"> </span><span class="dv">1</span></span>
-<span id="cb52-47"><a href="multidimensional-smoothing.html#cb52-47"></a>Tx =<span class="st"> </span><span class="kw">rowtens</span>(Bx)</span>
-<span id="cb52-48"><a href="multidimensional-smoothing.html#cb52-48"></a>Ty =<span class="st"> </span><span class="kw">rowtens</span>(By)</span>
-<span id="cb52-49"><a href="multidimensional-smoothing.html#cb52-49"></a>Q =<span class="st"> </span><span class="kw">t</span>(Tx) <span class="op">%*%</span><span class="st"> </span>W <span class="op">%*%</span><span class="st"> </span>Ty</span>
-<span id="cb52-50"><a href="multidimensional-smoothing.html#cb52-50"></a><span class="kw">dim</span>(Q) =<span class="st"> </span><span class="kw">c</span>(nbx, nbx, nby, nby)</span>
-<span id="cb52-51"><a href="multidimensional-smoothing.html#cb52-51"></a>Q =<span class="st"> </span><span class="kw">aperm</span>(Q, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">4</span>))</span>
-<span id="cb52-52"><a href="multidimensional-smoothing.html#cb52-52"></a><span class="kw">dim</span>(Q) =<span class="st"> </span><span class="kw">c</span>(nbx <span class="op">*</span><span class="st"> </span>nby, nbx <span class="op">*</span><span class="st"> </span>nby)</span>
-<span id="cb52-53"><a href="multidimensional-smoothing.html#cb52-53"></a>r =<span class="st"> </span><span class="kw">t</span>(Bx) <span class="op">%*%</span><span class="st"> </span>(Z <span class="op">*</span><span class="st"> </span>W) <span class="op">%*%</span><span class="st"> </span>By</span>
-<span id="cb52-54"><a href="multidimensional-smoothing.html#cb52-54"></a><span class="kw">dim</span>(r) =<span class="st"> </span><span class="kw">c</span>(nbx <span class="op">*</span><span class="st"> </span>nby, <span class="dv">1</span>)</span>
-<span id="cb52-55"><a href="multidimensional-smoothing.html#cb52-55"></a>A =<span class="st"> </span><span class="kw">solve</span>(Q <span class="op">+</span><span class="st"> </span>P, r)</span>
-<span id="cb52-56"><a href="multidimensional-smoothing.html#cb52-56"></a><span class="kw">dim</span>(A) =<span class="st"> </span><span class="kw">c</span>(nbx, nby)</span>
-<span id="cb52-57"><a href="multidimensional-smoothing.html#cb52-57"></a>Zhat =<span class="st"> </span>Bx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(By)</span>
-<span id="cb52-58"><a href="multidimensional-smoothing.html#cb52-58"></a></span>
-<span id="cb52-59"><a href="multidimensional-smoothing.html#cb52-59"></a><span class="co"># Prepare images/plots</span></span>
-<span id="cb52-60"><a href="multidimensional-smoothing.html#cb52-60"></a>cols =<span class="st"> </span><span class="kw">gray</span>(<span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dt">by =</span> <span class="fl">0.01</span>))</span>
-<span id="cb52-61"><a href="multidimensional-smoothing.html#cb52-61"></a><span class="kw">par</span>(<span class="dt">mfrow =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="dt">mar =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>))</span>
-<span id="cb52-62"><a href="multidimensional-smoothing.html#cb52-62"></a></span>
-<span id="cb52-63"><a href="multidimensional-smoothing.html#cb52-63"></a><span class="kw">image</span>(x, y, Z, <span class="dt">col =</span> cols, <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">xaxt =</span> <span class="st">&quot;n&quot;</span>, <span class="dt">yaxt =</span> <span class="st">&quot;n&quot;</span>)</span>
-<span id="cb52-64"><a href="multidimensional-smoothing.html#cb52-64"></a><span class="kw">title</span>(<span class="st">&quot;Data&quot;</span>, <span class="dt">cex.main =</span> <span class="fl">1.5</span>)</span>
-<span id="cb52-65"><a href="multidimensional-smoothing.html#cb52-65"></a><span class="kw">image</span>(x, y, Zhat, <span class="dt">col =</span> cols, <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">xaxt =</span> <span class="st">&quot;n&quot;</span>, <span class="dt">yaxt =</span> <span class="st">&quot;n&quot;</span>)</span>
-<span id="cb52-66"><a href="multidimensional-smoothing.html#cb52-66"></a><span class="kw">title</span>(<span class="st">&quot;Smoothed&quot;</span>, <span class="dt">cex.main =</span> <span class="fl">1.5</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb54"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb54-1"><a href="multidimensional-smoothing.html#cb54-1"></a><span class="co"># Smoothing ring image with array regression (Simulated data)</span></span>
+<span id="cb54-2"><a href="multidimensional-smoothing.html#cb54-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
+<span id="cb54-3"><a href="multidimensional-smoothing.html#cb54-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
+<span id="cb54-4"><a href="multidimensional-smoothing.html#cb54-4"></a><span class="kw">library</span>(ggplot2)</span>
+<span id="cb54-5"><a href="multidimensional-smoothing.html#cb54-5"></a><span class="kw">library</span>(JOPS)</span>
+<span id="cb54-6"><a href="multidimensional-smoothing.html#cb54-6"></a><span class="kw">library</span>(fields)</span>
+<span id="cb54-7"><a href="multidimensional-smoothing.html#cb54-7"></a></span>
+<span id="cb54-8"><a href="multidimensional-smoothing.html#cb54-8"></a><span class="co"># Simulate the rings</span></span>
+<span id="cb54-9"><a href="multidimensional-smoothing.html#cb54-9"></a>nx =<span class="st"> </span><span class="dv">500</span></span>
+<span id="cb54-10"><a href="multidimensional-smoothing.html#cb54-10"></a>ny =<span class="st"> </span><span class="dv">500</span></span>
+<span id="cb54-11"><a href="multidimensional-smoothing.html#cb54-11"></a>x =<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dt">length =</span> nx)</span>
+<span id="cb54-12"><a href="multidimensional-smoothing.html#cb54-12"></a>y =<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dt">length =</span> ny)</span>
+<span id="cb54-13"><a href="multidimensional-smoothing.html#cb54-13"></a>ex =<span class="st"> </span><span class="kw">rep</span>(<span class="dv">1</span>, nx)</span>
+<span id="cb54-14"><a href="multidimensional-smoothing.html#cb54-14"></a>ey =<span class="st"> </span><span class="kw">rep</span>(<span class="dv">1</span>, ny)</span>
+<span id="cb54-15"><a href="multidimensional-smoothing.html#cb54-15"></a>X =<span class="st"> </span><span class="kw">outer</span>(x, ey)</span>
+<span id="cb54-16"><a href="multidimensional-smoothing.html#cb54-16"></a>Y =<span class="st"> </span><span class="kw">outer</span>(ex, y)</span>
+<span id="cb54-17"><a href="multidimensional-smoothing.html#cb54-17"></a>R1 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">-</span><span class="st"> </span><span class="fl">0.3</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">-</span><span class="st"> </span><span class="fl">0.3</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb54-18"><a href="multidimensional-smoothing.html#cb54-18"></a>R2 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb54-19"><a href="multidimensional-smoothing.html#cb54-19"></a>R3 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">-</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">+</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb54-20"><a href="multidimensional-smoothing.html#cb54-20"></a>R4 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">+</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">-</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb54-21"><a href="multidimensional-smoothing.html#cb54-21"></a>Z1 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R1 <span class="op">-</span><span class="st"> </span><span class="fl">0.4</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb54-22"><a href="multidimensional-smoothing.html#cb54-22"></a>Z2 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R2 <span class="op">-</span><span class="st"> </span><span class="fl">0.6</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb54-23"><a href="multidimensional-smoothing.html#cb54-23"></a>Z3 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R3 <span class="op">-</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb54-24"><a href="multidimensional-smoothing.html#cb54-24"></a>Z4 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R4 <span class="op">-</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb54-25"><a href="multidimensional-smoothing.html#cb54-25"></a>Z =<span class="st"> </span><span class="kw">pmax</span>(<span class="kw">pmax</span>(<span class="kw">pmax</span>(Z1, Z2), Z3), Z4)</span>
+<span id="cb54-26"><a href="multidimensional-smoothing.html#cb54-26"></a></span>
+<span id="cb54-27"><a href="multidimensional-smoothing.html#cb54-27"></a><span class="co"># Add noise</span></span>
+<span id="cb54-28"><a href="multidimensional-smoothing.html#cb54-28"></a><span class="kw">set.seed</span>(<span class="dv">2019</span>)</span>
+<span id="cb54-29"><a href="multidimensional-smoothing.html#cb54-29"></a>Z =<span class="st"> </span>Z <span class="op">+</span><span class="st"> </span><span class="kw">matrix</span>(<span class="kw">rnorm</span>(nx <span class="op">*</span><span class="st"> </span>nx), nx, ny)</span>
+<span id="cb54-30"><a href="multidimensional-smoothing.html#cb54-30"></a></span>
+<span id="cb54-31"><a href="multidimensional-smoothing.html#cb54-31"></a><span class="co"># Prepare bases</span></span>
+<span id="cb54-32"><a href="multidimensional-smoothing.html#cb54-32"></a>Bx =<span class="st"> </span><span class="kw">bbase</span>(x, <span class="dt">nseg =</span> <span class="dv">20</span>)</span>
+<span id="cb54-33"><a href="multidimensional-smoothing.html#cb54-33"></a>By =<span class="st"> </span><span class="kw">bbase</span>(y, <span class="dt">nseg =</span> <span class="dv">20</span>)</span>
+<span id="cb54-34"><a href="multidimensional-smoothing.html#cb54-34"></a>nbx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
+<span id="cb54-35"><a href="multidimensional-smoothing.html#cb54-35"></a>nby =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
+<span id="cb54-36"><a href="multidimensional-smoothing.html#cb54-36"></a></span>
+<span id="cb54-37"><a href="multidimensional-smoothing.html#cb54-37"></a><span class="co"># Prpare the penalty matrices</span></span>
+<span id="cb54-38"><a href="multidimensional-smoothing.html#cb54-38"></a>Dx =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nbx), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
+<span id="cb54-39"><a href="multidimensional-smoothing.html#cb54-39"></a>Dy =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nby), <span class="dt">diff =</span> <span class="dv">2</span>)</span>
+<span id="cb54-40"><a href="multidimensional-smoothing.html#cb54-40"></a>lambdax =<span class="st"> </span>lambday =<span class="st"> </span><span class="dv">1</span></span>
+<span id="cb54-41"><a href="multidimensional-smoothing.html#cb54-41"></a>Px =<span class="st"> </span>lambdax <span class="op">*</span><span class="st"> </span><span class="kw">t</span>(Dx) <span class="op">%*%</span><span class="st"> </span>Dx</span>
+<span id="cb54-42"><a href="multidimensional-smoothing.html#cb54-42"></a>Py =<span class="st"> </span>lambday <span class="op">*</span><span class="st"> </span><span class="kw">t</span>(Dy) <span class="op">%*%</span><span class="st"> </span>Dy</span>
+<span id="cb54-43"><a href="multidimensional-smoothing.html#cb54-43"></a>P =<span class="st"> </span><span class="kw">kronecker</span>(Py, <span class="kw">diag</span>(nbx)) <span class="op">+</span><span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(nby), Px)</span>
+<span id="cb54-44"><a href="multidimensional-smoothing.html#cb54-44"></a></span>
+<span id="cb54-45"><a href="multidimensional-smoothing.html#cb54-45"></a><span class="co"># Do the smoothing, using the array algorithm</span></span>
+<span id="cb54-46"><a href="multidimensional-smoothing.html#cb54-46"></a>W =<span class="st"> </span><span class="dv">0</span> <span class="op">*</span><span class="st"> </span>Z <span class="op">+</span><span class="st"> </span><span class="dv">1</span></span>
+<span id="cb54-47"><a href="multidimensional-smoothing.html#cb54-47"></a>Tx =<span class="st"> </span><span class="kw">rowtens</span>(Bx)</span>
+<span id="cb54-48"><a href="multidimensional-smoothing.html#cb54-48"></a>Ty =<span class="st"> </span><span class="kw">rowtens</span>(By)</span>
+<span id="cb54-49"><a href="multidimensional-smoothing.html#cb54-49"></a>Q =<span class="st"> </span><span class="kw">t</span>(Tx) <span class="op">%*%</span><span class="st"> </span>W <span class="op">%*%</span><span class="st"> </span>Ty</span>
+<span id="cb54-50"><a href="multidimensional-smoothing.html#cb54-50"></a><span class="kw">dim</span>(Q) =<span class="st"> </span><span class="kw">c</span>(nbx, nbx, nby, nby)</span>
+<span id="cb54-51"><a href="multidimensional-smoothing.html#cb54-51"></a>Q =<span class="st"> </span><span class="kw">aperm</span>(Q, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">4</span>))</span>
+<span id="cb54-52"><a href="multidimensional-smoothing.html#cb54-52"></a><span class="kw">dim</span>(Q) =<span class="st"> </span><span class="kw">c</span>(nbx <span class="op">*</span><span class="st"> </span>nby, nbx <span class="op">*</span><span class="st"> </span>nby)</span>
+<span id="cb54-53"><a href="multidimensional-smoothing.html#cb54-53"></a>r =<span class="st"> </span><span class="kw">t</span>(Bx) <span class="op">%*%</span><span class="st"> </span>(Z <span class="op">*</span><span class="st"> </span>W) <span class="op">%*%</span><span class="st"> </span>By</span>
+<span id="cb54-54"><a href="multidimensional-smoothing.html#cb54-54"></a><span class="kw">dim</span>(r) =<span class="st"> </span><span class="kw">c</span>(nbx <span class="op">*</span><span class="st"> </span>nby, <span class="dv">1</span>)</span>
+<span id="cb54-55"><a href="multidimensional-smoothing.html#cb54-55"></a>A =<span class="st"> </span><span class="kw">solve</span>(Q <span class="op">+</span><span class="st"> </span>P, r)</span>
+<span id="cb54-56"><a href="multidimensional-smoothing.html#cb54-56"></a><span class="kw">dim</span>(A) =<span class="st"> </span><span class="kw">c</span>(nbx, nby)</span>
+<span id="cb54-57"><a href="multidimensional-smoothing.html#cb54-57"></a>Zhat =<span class="st"> </span>Bx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(By)</span>
+<span id="cb54-58"><a href="multidimensional-smoothing.html#cb54-58"></a></span>
+<span id="cb54-59"><a href="multidimensional-smoothing.html#cb54-59"></a><span class="co"># Prepare images/plots</span></span>
+<span id="cb54-60"><a href="multidimensional-smoothing.html#cb54-60"></a>cols =<span class="st"> </span><span class="kw">gray</span>(<span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dt">by =</span> <span class="fl">0.01</span>))</span>
+<span id="cb54-61"><a href="multidimensional-smoothing.html#cb54-61"></a><span class="kw">par</span>(<span class="dt">mfrow =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="dt">mar =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>))</span>
+<span id="cb54-62"><a href="multidimensional-smoothing.html#cb54-62"></a></span>
+<span id="cb54-63"><a href="multidimensional-smoothing.html#cb54-63"></a><span class="kw">image</span>(x, y, Z, <span class="dt">col =</span> cols, <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">xaxt =</span> <span class="st">&quot;n&quot;</span>, <span class="dt">yaxt =</span> <span class="st">&quot;n&quot;</span>)</span>
+<span id="cb54-64"><a href="multidimensional-smoothing.html#cb54-64"></a><span class="kw">title</span>(<span class="st">&quot;Data&quot;</span>, <span class="dt">cex.main =</span> <span class="fl">1.5</span>)</span>
+<span id="cb54-65"><a href="multidimensional-smoothing.html#cb54-65"></a><span class="kw">image</span>(x, y, Zhat, <span class="dt">col =</span> cols, <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">xaxt =</span> <span class="st">&quot;n&quot;</span>, <span class="dt">yaxt =</span> <span class="st">&quot;n&quot;</span>)</span>
+<span id="cb54-66"><a href="multidimensional-smoothing.html#cb54-66"></a><span class="kw">title</span>(<span class="st">&quot;Smoothed&quot;</span>, <span class="dt">cex.main =</span> <span class="fl">1.5</span>)</span></code></pre></div>
 <p><img src="_main_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
 
 </div>
 <div id="figure-4.11" class="section level2 hasAnchor">
 <h2><span class="header-section-number">4.6</span> Figure 4.11<a href="multidimensional-smoothing.html#figure-4.11" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<div class="sourceCode" id="cb53"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb53-1"><a href="multidimensional-smoothing.html#cb53-1"></a><span class="co"># Smoothing scattered data with 2D P-splines (Simulated data)</span></span>
-<span id="cb53-2"><a href="multidimensional-smoothing.html#cb53-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
-<span id="cb53-3"><a href="multidimensional-smoothing.html#cb53-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
-<span id="cb53-4"><a href="multidimensional-smoothing.html#cb53-4"></a><span class="kw">library</span>(ggplot2)</span>
-<span id="cb53-5"><a href="multidimensional-smoothing.html#cb53-5"></a><span class="kw">library</span>(JOPS)</span>
-<span id="cb53-6"><a href="multidimensional-smoothing.html#cb53-6"></a><span class="kw">library</span>(fields)</span></code></pre></div>
-<div class="sourceCode" id="cb54"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb54-1"><a href="multidimensional-smoothing.html#cb54-1"></a><span class="co"># Simulate the rings</span></span>
-<span id="cb54-2"><a href="multidimensional-smoothing.html#cb54-2"></a>nx =<span class="st"> </span><span class="dv">200</span></span>
-<span id="cb54-3"><a href="multidimensional-smoothing.html#cb54-3"></a>ny =<span class="st"> </span><span class="dv">200</span></span>
-<span id="cb54-4"><a href="multidimensional-smoothing.html#cb54-4"></a>x =<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dt">length =</span> nx)</span>
-<span id="cb54-5"><a href="multidimensional-smoothing.html#cb54-5"></a>y =<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dt">length =</span> ny)</span>
-<span id="cb54-6"><a href="multidimensional-smoothing.html#cb54-6"></a>ex =<span class="st"> </span><span class="kw">rep</span>(<span class="dv">1</span>, nx)</span>
-<span id="cb54-7"><a href="multidimensional-smoothing.html#cb54-7"></a>ey =<span class="st"> </span><span class="kw">rep</span>(<span class="dv">1</span>, ny)</span>
-<span id="cb54-8"><a href="multidimensional-smoothing.html#cb54-8"></a>X =<span class="st"> </span><span class="kw">outer</span>(x, ey)</span>
-<span id="cb54-9"><a href="multidimensional-smoothing.html#cb54-9"></a>Y =<span class="st"> </span><span class="kw">outer</span>(ex, y)</span>
-<span id="cb54-10"><a href="multidimensional-smoothing.html#cb54-10"></a>R1 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">-</span><span class="st"> </span><span class="fl">0.3</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">-</span><span class="st"> </span><span class="fl">0.3</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb54-11"><a href="multidimensional-smoothing.html#cb54-11"></a>R2 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb54-12"><a href="multidimensional-smoothing.html#cb54-12"></a>R3 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">-</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">+</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb54-13"><a href="multidimensional-smoothing.html#cb54-13"></a>R4 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">+</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">-</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb54-14"><a href="multidimensional-smoothing.html#cb54-14"></a>Z1 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R1 <span class="op">-</span><span class="st"> </span><span class="fl">0.4</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb54-15"><a href="multidimensional-smoothing.html#cb54-15"></a>Z2 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R2 <span class="op">-</span><span class="st"> </span><span class="fl">0.6</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb54-16"><a href="multidimensional-smoothing.html#cb54-16"></a>Z3 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R3 <span class="op">-</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb54-17"><a href="multidimensional-smoothing.html#cb54-17"></a>Z4 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R4 <span class="op">-</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb54-18"><a href="multidimensional-smoothing.html#cb54-18"></a>Z =<span class="st"> </span><span class="kw">pmax</span>(<span class="kw">pmax</span>(<span class="kw">pmax</span>(Z1, Z2), Z3), Z4) <span class="op">+</span><span class="st"> </span><span class="fl">0.3</span></span>
-<span id="cb54-19"><a href="multidimensional-smoothing.html#cb54-19"></a></span>
-<span id="cb54-20"><a href="multidimensional-smoothing.html#cb54-20"></a><span class="co"># Prepare bases</span></span>
-<span id="cb54-21"><a href="multidimensional-smoothing.html#cb54-21"></a>Bx =<span class="st"> </span><span class="kw">bbase</span>(x, <span class="dt">nseg =</span> <span class="dv">20</span>)</span>
-<span id="cb54-22"><a href="multidimensional-smoothing.html#cb54-22"></a>By =<span class="st"> </span><span class="kw">bbase</span>(y, <span class="dt">nseg =</span> <span class="dv">20</span>)</span>
-<span id="cb54-23"><a href="multidimensional-smoothing.html#cb54-23"></a>nbx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
-<span id="cb54-24"><a href="multidimensional-smoothing.html#cb54-24"></a>nby =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
-<span id="cb54-25"><a href="multidimensional-smoothing.html#cb54-25"></a></span>
-<span id="cb54-26"><a href="multidimensional-smoothing.html#cb54-26"></a><span class="co"># Prpare the penalty matrices</span></span>
-<span id="cb54-27"><a href="multidimensional-smoothing.html#cb54-27"></a>Dx =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nbx), <span class="dt">diff =</span> <span class="dv">3</span>)</span>
-<span id="cb54-28"><a href="multidimensional-smoothing.html#cb54-28"></a>Dy =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nby), <span class="dt">diff =</span> <span class="dv">3</span>)</span>
-<span id="cb54-29"><a href="multidimensional-smoothing.html#cb54-29"></a>lambdax =<span class="st"> </span>lambday =<span class="st"> </span><span class="fl">0.1</span></span>
-<span id="cb54-30"><a href="multidimensional-smoothing.html#cb54-30"></a>Px =<span class="st"> </span>lambdax <span class="op">*</span><span class="st"> </span><span class="kw">t</span>(Dx) <span class="op">%*%</span><span class="st"> </span>Dx</span>
-<span id="cb54-31"><a href="multidimensional-smoothing.html#cb54-31"></a>Py =<span class="st"> </span>lambday <span class="op">*</span><span class="st"> </span><span class="kw">t</span>(Dy) <span class="op">%*%</span><span class="st"> </span>Dy</span>
-<span id="cb54-32"><a href="multidimensional-smoothing.html#cb54-32"></a>P =<span class="st"> </span><span class="kw">kronecker</span>(Py, <span class="kw">diag</span>(nbx)) <span class="op">+</span><span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(nby), Px)</span>
-<span id="cb54-33"><a href="multidimensional-smoothing.html#cb54-33"></a></span>
-<span id="cb54-34"><a href="multidimensional-smoothing.html#cb54-34"></a><span class="co"># Do the smoothing, using the array algorithm</span></span>
-<span id="cb54-35"><a href="multidimensional-smoothing.html#cb54-35"></a>W =<span class="st"> </span><span class="kw">matrix</span>(<span class="kw">runif</span>(nx <span class="op">*</span><span class="st"> </span>ny) <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.01</span>, nx, ny)</span>
-<span id="cb54-36"><a href="multidimensional-smoothing.html#cb54-36"></a></span>
-<span id="cb54-37"><a href="multidimensional-smoothing.html#cb54-37"></a>Tx =<span class="st"> </span><span class="kw">rowtens</span>(Bx)</span>
-<span id="cb54-38"><a href="multidimensional-smoothing.html#cb54-38"></a>Ty =<span class="st"> </span><span class="kw">rowtens</span>(By)</span>
-<span id="cb54-39"><a href="multidimensional-smoothing.html#cb54-39"></a>Q =<span class="st"> </span><span class="kw">t</span>(Tx) <span class="op">%*%</span><span class="st"> </span>W <span class="op">%*%</span><span class="st"> </span>Ty</span>
-<span id="cb54-40"><a href="multidimensional-smoothing.html#cb54-40"></a><span class="kw">dim</span>(Q) =<span class="st"> </span><span class="kw">c</span>(nbx, nbx, nby, nby)</span>
-<span id="cb54-41"><a href="multidimensional-smoothing.html#cb54-41"></a>Q =<span class="st"> </span><span class="kw">aperm</span>(Q, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">4</span>))</span>
-<span id="cb54-42"><a href="multidimensional-smoothing.html#cb54-42"></a><span class="kw">dim</span>(Q) =<span class="st"> </span><span class="kw">c</span>(nbx <span class="op">*</span><span class="st"> </span>nby, nbx <span class="op">*</span><span class="st"> </span>nby)</span>
-<span id="cb54-43"><a href="multidimensional-smoothing.html#cb54-43"></a>r =<span class="st"> </span><span class="kw">t</span>(Bx) <span class="op">%*%</span><span class="st"> </span>(Z <span class="op">*</span><span class="st"> </span>W) <span class="op">%*%</span><span class="st"> </span>By</span>
-<span id="cb54-44"><a href="multidimensional-smoothing.html#cb54-44"></a><span class="kw">dim</span>(r) =<span class="st"> </span><span class="kw">c</span>(nbx <span class="op">*</span><span class="st"> </span>nby, <span class="dv">1</span>)</span>
-<span id="cb54-45"><a href="multidimensional-smoothing.html#cb54-45"></a>A =<span class="st"> </span><span class="kw">solve</span>(Q <span class="op">+</span><span class="st"> </span>P, r)</span>
-<span id="cb54-46"><a href="multidimensional-smoothing.html#cb54-46"></a><span class="kw">dim</span>(A) =<span class="st"> </span><span class="kw">c</span>(nbx, nby)</span>
-<span id="cb54-47"><a href="multidimensional-smoothing.html#cb54-47"></a>Zhat =<span class="st"> </span>Bx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(By)</span>
-<span id="cb54-48"><a href="multidimensional-smoothing.html#cb54-48"></a></span>
-<span id="cb54-49"><a href="multidimensional-smoothing.html#cb54-49"></a><span class="co"># Make and save plots</span></span>
-<span id="cb54-50"><a href="multidimensional-smoothing.html#cb54-50"></a>cols =<span class="st"> </span><span class="kw">gray</span>(<span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dt">by =</span> <span class="fl">0.01</span>))</span>
-<span id="cb54-51"><a href="multidimensional-smoothing.html#cb54-51"></a><span class="kw">par</span>(<span class="dt">mfrow =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="dt">mar =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>))</span>
-<span id="cb54-52"><a href="multidimensional-smoothing.html#cb54-52"></a></span>
-<span id="cb54-53"><a href="multidimensional-smoothing.html#cb54-53"></a><span class="kw">image</span>(x, y, Z <span class="op">*</span><span class="st"> </span>W, <span class="dt">col =</span> cols, <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">xaxt =</span> <span class="st">&quot;n&quot;</span>, <span class="dt">yaxt =</span> <span class="st">&quot;n&quot;</span>)</span>
-<span id="cb54-54"><a href="multidimensional-smoothing.html#cb54-54"></a><span class="kw">title</span>(<span class="st">&quot;Data&quot;</span>, <span class="dt">cex.main =</span> <span class="fl">1.5</span>)</span>
-<span id="cb54-55"><a href="multidimensional-smoothing.html#cb54-55"></a><span class="kw">image</span>(x, y, Zhat, <span class="dt">col =</span> cols, <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">xaxt =</span> <span class="st">&quot;n&quot;</span>, <span class="dt">yaxt =</span> <span class="st">&quot;n&quot;</span>)</span>
-<span id="cb54-56"><a href="multidimensional-smoothing.html#cb54-56"></a><span class="kw">title</span>(<span class="st">&quot;Smoothed&quot;</span>, <span class="dt">cex.main =</span> <span class="fl">1.5</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb55"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb55-1"><a href="multidimensional-smoothing.html#cb55-1"></a><span class="co"># Smoothing scattered data with 2D P-splines (Simulated data)</span></span>
+<span id="cb55-2"><a href="multidimensional-smoothing.html#cb55-2"></a><span class="co"># A graph in the book &#39;Practical Smoothing. The Joys of P-splines&#39;</span></span>
+<span id="cb55-3"><a href="multidimensional-smoothing.html#cb55-3"></a><span class="co"># Paul Eilers and Brian Marx, 2019</span></span>
+<span id="cb55-4"><a href="multidimensional-smoothing.html#cb55-4"></a><span class="kw">library</span>(ggplot2)</span>
+<span id="cb55-5"><a href="multidimensional-smoothing.html#cb55-5"></a><span class="kw">library</span>(JOPS)</span>
+<span id="cb55-6"><a href="multidimensional-smoothing.html#cb55-6"></a><span class="kw">library</span>(fields)</span></code></pre></div>
+<div class="sourceCode" id="cb56"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb56-1"><a href="multidimensional-smoothing.html#cb56-1"></a><span class="co"># Simulate the rings</span></span>
+<span id="cb56-2"><a href="multidimensional-smoothing.html#cb56-2"></a>nx =<span class="st"> </span><span class="dv">200</span></span>
+<span id="cb56-3"><a href="multidimensional-smoothing.html#cb56-3"></a>ny =<span class="st"> </span><span class="dv">200</span></span>
+<span id="cb56-4"><a href="multidimensional-smoothing.html#cb56-4"></a>x =<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dt">length =</span> nx)</span>
+<span id="cb56-5"><a href="multidimensional-smoothing.html#cb56-5"></a>y =<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dt">length =</span> ny)</span>
+<span id="cb56-6"><a href="multidimensional-smoothing.html#cb56-6"></a>ex =<span class="st"> </span><span class="kw">rep</span>(<span class="dv">1</span>, nx)</span>
+<span id="cb56-7"><a href="multidimensional-smoothing.html#cb56-7"></a>ey =<span class="st"> </span><span class="kw">rep</span>(<span class="dv">1</span>, ny)</span>
+<span id="cb56-8"><a href="multidimensional-smoothing.html#cb56-8"></a>X =<span class="st"> </span><span class="kw">outer</span>(x, ey)</span>
+<span id="cb56-9"><a href="multidimensional-smoothing.html#cb56-9"></a>Y =<span class="st"> </span><span class="kw">outer</span>(ex, y)</span>
+<span id="cb56-10"><a href="multidimensional-smoothing.html#cb56-10"></a>R1 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">-</span><span class="st"> </span><span class="fl">0.3</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">-</span><span class="st"> </span><span class="fl">0.3</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb56-11"><a href="multidimensional-smoothing.html#cb56-11"></a>R2 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb56-12"><a href="multidimensional-smoothing.html#cb56-12"></a>R3 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">-</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">+</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb56-13"><a href="multidimensional-smoothing.html#cb56-13"></a>R4 =<span class="st"> </span><span class="kw">sqrt</span>((X <span class="op">+</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(Y <span class="op">-</span><span class="st"> </span><span class="fl">0.7</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb56-14"><a href="multidimensional-smoothing.html#cb56-14"></a>Z1 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R1 <span class="op">-</span><span class="st"> </span><span class="fl">0.4</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb56-15"><a href="multidimensional-smoothing.html#cb56-15"></a>Z2 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R2 <span class="op">-</span><span class="st"> </span><span class="fl">0.6</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb56-16"><a href="multidimensional-smoothing.html#cb56-16"></a>Z3 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R3 <span class="op">-</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb56-17"><a href="multidimensional-smoothing.html#cb56-17"></a>Z4 =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="dv">50</span> <span class="op">*</span><span class="st"> </span>(R4 <span class="op">-</span><span class="st"> </span><span class="fl">0.2</span>)<span class="op">^</span><span class="dv">2</span>)</span>
+<span id="cb56-18"><a href="multidimensional-smoothing.html#cb56-18"></a>Z =<span class="st"> </span><span class="kw">pmax</span>(<span class="kw">pmax</span>(<span class="kw">pmax</span>(Z1, Z2), Z3), Z4) <span class="op">+</span><span class="st"> </span><span class="fl">0.3</span></span>
+<span id="cb56-19"><a href="multidimensional-smoothing.html#cb56-19"></a></span>
+<span id="cb56-20"><a href="multidimensional-smoothing.html#cb56-20"></a><span class="co"># Prepare bases</span></span>
+<span id="cb56-21"><a href="multidimensional-smoothing.html#cb56-21"></a>Bx =<span class="st"> </span><span class="kw">bbase</span>(x, <span class="dt">nseg =</span> <span class="dv">20</span>)</span>
+<span id="cb56-22"><a href="multidimensional-smoothing.html#cb56-22"></a>By =<span class="st"> </span><span class="kw">bbase</span>(y, <span class="dt">nseg =</span> <span class="dv">20</span>)</span>
+<span id="cb56-23"><a href="multidimensional-smoothing.html#cb56-23"></a>nbx =<span class="st"> </span><span class="kw">ncol</span>(Bx)</span>
+<span id="cb56-24"><a href="multidimensional-smoothing.html#cb56-24"></a>nby =<span class="st"> </span><span class="kw">ncol</span>(By)</span>
+<span id="cb56-25"><a href="multidimensional-smoothing.html#cb56-25"></a></span>
+<span id="cb56-26"><a href="multidimensional-smoothing.html#cb56-26"></a><span class="co"># Prpare the penalty matrices</span></span>
+<span id="cb56-27"><a href="multidimensional-smoothing.html#cb56-27"></a>Dx =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nbx), <span class="dt">diff =</span> <span class="dv">3</span>)</span>
+<span id="cb56-28"><a href="multidimensional-smoothing.html#cb56-28"></a>Dy =<span class="st"> </span><span class="kw">diff</span>(<span class="kw">diag</span>(nby), <span class="dt">diff =</span> <span class="dv">3</span>)</span>
+<span id="cb56-29"><a href="multidimensional-smoothing.html#cb56-29"></a>lambdax =<span class="st"> </span>lambday =<span class="st"> </span><span class="fl">0.1</span></span>
+<span id="cb56-30"><a href="multidimensional-smoothing.html#cb56-30"></a>Px =<span class="st"> </span>lambdax <span class="op">*</span><span class="st"> </span><span class="kw">t</span>(Dx) <span class="op">%*%</span><span class="st"> </span>Dx</span>
+<span id="cb56-31"><a href="multidimensional-smoothing.html#cb56-31"></a>Py =<span class="st"> </span>lambday <span class="op">*</span><span class="st"> </span><span class="kw">t</span>(Dy) <span class="op">%*%</span><span class="st"> </span>Dy</span>
+<span id="cb56-32"><a href="multidimensional-smoothing.html#cb56-32"></a>P =<span class="st"> </span><span class="kw">kronecker</span>(Py, <span class="kw">diag</span>(nbx)) <span class="op">+</span><span class="st"> </span><span class="kw">kronecker</span>(<span class="kw">diag</span>(nby), Px)</span>
+<span id="cb56-33"><a href="multidimensional-smoothing.html#cb56-33"></a></span>
+<span id="cb56-34"><a href="multidimensional-smoothing.html#cb56-34"></a><span class="co"># Do the smoothing, using the array algorithm</span></span>
+<span id="cb56-35"><a href="multidimensional-smoothing.html#cb56-35"></a>W =<span class="st"> </span><span class="kw">matrix</span>(<span class="kw">runif</span>(nx <span class="op">*</span><span class="st"> </span>ny) <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.01</span>, nx, ny)</span>
+<span id="cb56-36"><a href="multidimensional-smoothing.html#cb56-36"></a></span>
+<span id="cb56-37"><a href="multidimensional-smoothing.html#cb56-37"></a>Tx =<span class="st"> </span><span class="kw">rowtens</span>(Bx)</span>
+<span id="cb56-38"><a href="multidimensional-smoothing.html#cb56-38"></a>Ty =<span class="st"> </span><span class="kw">rowtens</span>(By)</span>
+<span id="cb56-39"><a href="multidimensional-smoothing.html#cb56-39"></a>Q =<span class="st"> </span><span class="kw">t</span>(Tx) <span class="op">%*%</span><span class="st"> </span>W <span class="op">%*%</span><span class="st"> </span>Ty</span>
+<span id="cb56-40"><a href="multidimensional-smoothing.html#cb56-40"></a><span class="kw">dim</span>(Q) =<span class="st"> </span><span class="kw">c</span>(nbx, nbx, nby, nby)</span>
+<span id="cb56-41"><a href="multidimensional-smoothing.html#cb56-41"></a>Q =<span class="st"> </span><span class="kw">aperm</span>(Q, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">4</span>))</span>
+<span id="cb56-42"><a href="multidimensional-smoothing.html#cb56-42"></a><span class="kw">dim</span>(Q) =<span class="st"> </span><span class="kw">c</span>(nbx <span class="op">*</span><span class="st"> </span>nby, nbx <span class="op">*</span><span class="st"> </span>nby)</span>
+<span id="cb56-43"><a href="multidimensional-smoothing.html#cb56-43"></a>r =<span class="st"> </span><span class="kw">t</span>(Bx) <span class="op">%*%</span><span class="st"> </span>(Z <span class="op">*</span><span class="st"> </span>W) <span class="op">%*%</span><span class="st"> </span>By</span>
+<span id="cb56-44"><a href="multidimensional-smoothing.html#cb56-44"></a><span class="kw">dim</span>(r) =<span class="st"> </span><span class="kw">c</span>(nbx <span class="op">*</span><span class="st"> </span>nby, <span class="dv">1</span>)</span>
+<span id="cb56-45"><a href="multidimensional-smoothing.html#cb56-45"></a>A =<span class="st"> </span><span class="kw">solve</span>(Q <span class="op">+</span><span class="st"> </span>P, r)</span>
+<span id="cb56-46"><a href="multidimensional-smoothing.html#cb56-46"></a><span class="kw">dim</span>(A) =<span class="st"> </span><span class="kw">c</span>(nbx, nby)</span>
+<span id="cb56-47"><a href="multidimensional-smoothing.html#cb56-47"></a>Zhat =<span class="st"> </span>Bx <span class="op">%*%</span><span class="st"> </span>A <span class="op">%*%</span><span class="st"> </span><span class="kw">t</span>(By)</span>
+<span id="cb56-48"><a href="multidimensional-smoothing.html#cb56-48"></a></span>
+<span id="cb56-49"><a href="multidimensional-smoothing.html#cb56-49"></a><span class="co"># Make and save plots</span></span>
+<span id="cb56-50"><a href="multidimensional-smoothing.html#cb56-50"></a>cols =<span class="st"> </span><span class="kw">gray</span>(<span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dt">by =</span> <span class="fl">0.01</span>))</span>
+<span id="cb56-51"><a href="multidimensional-smoothing.html#cb56-51"></a><span class="kw">par</span>(<span class="dt">mfrow =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="dt">mar =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>))</span>
+<span id="cb56-52"><a href="multidimensional-smoothing.html#cb56-52"></a></span>
+<span id="cb56-53"><a href="multidimensional-smoothing.html#cb56-53"></a><span class="kw">image</span>(x, y, Z <span class="op">*</span><span class="st"> </span>W, <span class="dt">col =</span> cols, <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">xaxt =</span> <span class="st">&quot;n&quot;</span>, <span class="dt">yaxt =</span> <span class="st">&quot;n&quot;</span>)</span>
+<span id="cb56-54"><a href="multidimensional-smoothing.html#cb56-54"></a><span class="kw">title</span>(<span class="st">&quot;Data&quot;</span>, <span class="dt">cex.main =</span> <span class="fl">1.5</span>)</span>
+<span id="cb56-55"><a href="multidimensional-smoothing.html#cb56-55"></a><span class="kw">image</span>(x, y, Zhat, <span class="dt">col =</span> cols, <span class="dt">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">xaxt =</span> <span class="st">&quot;n&quot;</span>, <span class="dt">yaxt =</span> <span class="st">&quot;n&quot;</span>)</span>
+<span id="cb56-56"><a href="multidimensional-smoothing.html#cb56-56"></a><span class="kw">title</span>(<span class="st">&quot;Smoothed&quot;</span>, <span class="dt">cex.main =</span> <span class="fl">1.5</span>)</span></code></pre></div>
 <p><img src="_main_files/figure-html/unnamed-chunk-25-1.png" width="672" /></p>
 
 </div>
@@ -825,7 +835,7 @@ gitbook.start({
     var script = document.createElement("script");
     script.type = "text/javascript";
     var src = "true";
-    if (src === "" || src === "true") src = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML";
+    if (src === "" || src === "true") src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/latest.js?config=TeX-MML-AM_CHTML";
     if (location.protocol !== "file:")
       if (/^https?:/.test(src))
         src = src.replace(/^https?:/, '');
