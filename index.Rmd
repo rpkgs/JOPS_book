@@ -66,8 +66,6 @@ bookdown::serve_book()
 
 ## 作者简介 {.unnumbered #author}
 
-孔冬冬，自然地理学博士，中国地质大学（武汉）任教。
-
 
 ## 参考文献 {.unnumbered #reference}
 
